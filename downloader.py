@@ -38,7 +38,7 @@ def download_rates(
     return payload
 
 
-def write_rates(db_path: str, payload: dict[str, Any]) -> int:
+def write_rates(conn: duckdb.DuckDBPyConnection, payload: dict[str, Any]) -> int:
     base_iso = payload["base"]
     rows: list[tuple[str, str, dt.date, float, dt.datetime]] = []
     updated_at = dt.datetime.now(dt.timezone.utc)
@@ -49,23 +49,22 @@ def write_rates(db_path: str, payload: dict[str, Any]) -> int:
     if not rows:
         return 0
 
-    with duckdb.connect(db_path) as conn:
-        conn.execute("CREATE SCHEMA IF NOT EXISTS staging")
-        conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS staging.rates (
-                base_iso TEXT,
-                to_iso TEXT,
-                date DATE,
-                rate DOUBLE,
-                updated_at TIMESTAMP
-            )
-            """
+    conn.execute("CREATE SCHEMA IF NOT EXISTS staging")
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS staging.rates (
+            base_iso TEXT,
+            to_iso TEXT,
+            date DATE,
+            rate DOUBLE,
+            updated_at TIMESTAMP
         )
-        conn.executemany(
-            "INSERT INTO staging.rates (base_iso, to_iso, date, rate, updated_at) VALUES (?, ?, ?, ?, ?)",
-            rows,
-        )
+        """
+    )
+    conn.executemany(
+        "INSERT INTO staging.rates (base_iso, to_iso, date, rate, updated_at) VALUES (?, ?, ?, ?, ?)",
+        rows,
+    )
     return len(rows)
 
 
@@ -115,13 +114,11 @@ def main() -> None:
     end_date = dt.date.today() - dt.timedelta(days=1)
     total_inserted = 0
     with duckdb.connect(args.db_path) as conn:
-        start_date = get_watermark(conn, base_iso)
-        if start_date <= end_date:
-            current_date = start_date
-            while current_date <= end_date:
-                payload = download_rates(base_iso, iso_codes, current_date, api_key)
-                total_inserted += write_rates(args.db_path, payload)
-                current_date += dt.timedelta(days=1)
+        current_date = get_watermark(conn, base_iso)
+        while current_date <= end_date:
+            payload = download_rates(base_iso, iso_codes, current_date, api_key)
+            total_inserted += write_rates(conn, payload)
+            current_date += dt.timedelta(days=1)
 
     if total_inserted:
         print(f"Inserted {total_inserted} rows into raw.rates.")
