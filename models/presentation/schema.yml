@@ -1,0 +1,45 @@
+version: 2
+
+sources:
+  - name: staging
+    schema: staging
+    tables:
+      - name: rates
+        description: Daily FX rates loaded from the Fixer API historical endpoint.
+        columns:
+          - name: base_iso
+            description: ISO currency code for the base currency (fixed to EUR in the downloader).
+          - name: to_iso
+            description: ISO currency code for the quoted currency.
+          - name: date
+            description: UTC date of the FX rate.
+          - name: rate
+            description: FX rate quoted as one unit of base_iso in to_iso.
+          - name: updated_at
+            description: UTC timestamp when the row was inserted into staging.
+
+models:
+  - name: rates
+    description: Mirror of staging.rates with refreshed updated_at timestamps from dbt.
+    columns:
+      - name: base_iso
+        description: ISO currency code for the base currency.
+      - name: to_iso
+        description: ISO currency code for the quoted currency.
+      - name: date
+        description: UTC date of the FX rate.
+      - name: rate
+        description: FX rate quoted as one unit of base_iso in to_iso.
+      - name: updated_at
+        description: UTC timestamp when the presentation.rates row was last updated by dbt.
+  - name: twi
+    description: Equal-weight trade-weighted index per base currency, indexed to 100 on the earliest date.
+    columns:
+      - name: base_iso
+        description: ISO currency code for the base currency.
+      - name: date
+        description: UTC date of the index value.
+      - name: rate
+        description: Trade-weighted index value (base date = 100).
+      - name: updated_at
+        description: UTC timestamp when the presentation.twi row was last updated by dbt.

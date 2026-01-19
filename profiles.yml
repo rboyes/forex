@@ -1,0 +1,7 @@
+forex:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: forex.db
+      threads: 1

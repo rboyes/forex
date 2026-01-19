@@ -1,0 +1,17 @@
+name: "forex"
+version: "1.0.0"
+config-version: 2
+
+profile: "forex"
+
+model-paths: ["models"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+models:
+  forex:
+    +persist_docs:
+      relation: true
+      columns: true
+    presentation:
+      +schema: "presentation"

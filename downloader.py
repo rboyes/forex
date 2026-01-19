@@ -1,28 +1,24 @@
 import argparse
 import datetime as dt
-import os
 from typing import Any
 
 import duckdb
 import requests
-from dotenv import load_dotenv
 
 
 BASE_ISO = "EUR"
-DEFAULT_START_DATE = dt.date(2026, 1, 15)
-FIXER_URL = "https://data.fixer.io/api"
+DEFAULT_START_DATE = dt.date(2026, 1, 2)
+FOREX_URL = "https://api.frankfurter.dev/v1"
 
 
 def download_rates(
     base_iso: str,
     iso_codes: str,
     date: dt.date,
-    api_key: str,
 ) -> dict[str, Any]:
     symbols_param = iso_codes
-    url = f"{FIXER_URL}/{date.isoformat()}"
+    url = f"{FOREX_URL}/{date.isoformat()}"
     params = {
-        "access_key": api_key,
         "base": base_iso,
         "symbols": symbols_param,
     }
@@ -33,8 +29,6 @@ def download_rates(
     )
     response.raise_for_status()
     payload = response.json()
-    if not payload.get("success", False):
-        raise RuntimeError(f"Fixer API error for base {base_iso}: {payload}")
     return payload
 
 
@@ -43,7 +37,12 @@ def write_rates(conn: duckdb.DuckDBPyConnection, payload: dict[str, Any]) -> int
     rows: list[tuple[str, str, dt.date, float, dt.datetime]] = []
     updated_at = dt.datetime.now(dt.timezone.utc)
     date_value = dt.date.fromisoformat(payload["date"])
+    seen: set[tuple[str, str, dt.date]] = set()
     for to_iso, rate in payload["rates"].items():
+        key = (base_iso, to_iso, date_value)
+        if key in seen:
+            continue
+        seen.add(key)
         rows.append((base_iso, to_iso, date_value, float(rate), updated_at))
 
     if not rows:
@@ -62,7 +61,27 @@ def write_rates(conn: duckdb.DuckDBPyConnection, payload: dict[str, Any]) -> int
         """
     )
     conn.executemany(
-        "INSERT INTO staging.rates (base_iso, to_iso, date, rate, updated_at) VALUES (?, ?, ?, ?, ?)",
+        """
+        MERGE INTO staging.rates AS target
+        USING (
+            SELECT
+                ? AS base_iso,
+                ? AS to_iso,
+                ? AS date,
+                ? AS rate,
+                ? AS updated_at
+        ) AS source
+        ON target.base_iso = source.base_iso
+            AND target.to_iso = source.to_iso
+            AND target.date = source.date
+        WHEN MATCHED THEN
+            UPDATE SET
+                rate = source.rate,
+                updated_at = source.updated_at
+        WHEN NOT MATCHED THEN
+            INSERT (base_iso, to_iso, date, rate, updated_at)
+            VALUES (source.base_iso, source.to_iso, source.date, source.rate, source.updated_at)
+        """,
         rows,
     )
     return len(rows)
@@ -101,13 +120,6 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    api_key = os.getenv("API_KEY")
-    if not api_key:
-        load_dotenv(".env.local")
-        api_key = os.getenv("API_KEY")
-    if not api_key:
-        raise RuntimeError("API_KEY not found in environment or .env.local.")
-
     iso_codes = args.iso_codes
     base_iso = BASE_ISO
 
@@ -116,7 +128,7 @@ def main() -> None:
     with duckdb.connect(args.db_path) as conn:
         current_date = get_watermark(conn, base_iso)
         while current_date <= end_date:
-            payload = download_rates(base_iso, iso_codes, current_date, api_key)
+            payload = download_rates(base_iso, iso_codes, current_date)
             total_inserted += write_rates(conn, payload)
             current_date += dt.timedelta(days=1)
 
