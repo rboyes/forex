@@ -50,12 +50,3 @@ Basic API download and DBT Transform using DuckDB and Google Cloud
 uv run downloader.py --db-path /tmp/forex.db
 uv run dbt run --target dev
 ```
-
-## Running in prod on Google Cloud
-
-```bash
-gcloud iam service-accounts keys create ./dbt-runner.json \
-  --iam-account=dbt-runner@forex-20260115.iam.gserviceaccount.com
-export GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/dbt-runner.json
-uv run dbt run --target prod
-```
