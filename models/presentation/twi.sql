@@ -9,7 +9,7 @@ with base_rates as (
         base_iso,
         date,
         avg(rate) as avg_rate
-    from {{ source("staging", "rates") }}
+    from {{ ref("staging_rates") }}
     group by 1, 2
 ),
 base_dates as (
@@ -46,11 +46,5 @@ twi_values as (
     from base_values bv
     join base_index bi
         on bv.base_iso = bi.base_iso
-    {% if is_incremental() %}
-    where bv.date > (
-        select coalesce(max(date), date '1900-01-01')
-        from {{ this }}
-    )
-    {% endif %}
 )
 select * from twi_values

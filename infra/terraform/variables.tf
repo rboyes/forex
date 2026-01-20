@@ -21,3 +21,21 @@ variable "project_bucket_name" {
   description = "GCS bucket name for project."
   default     = "forex-20260115"
 }
+
+variable "staging_dataset_id" {
+  type        = string
+  description = "BigQuery dataset id for staging tables."
+  default     = "staging"
+}
+
+variable "raw_dataset_id" {
+  type        = string
+  description = "BigQuery dataset id for raw external tables."
+  default     = "raw"
+}
+
+variable "presentation_dataset_id" {
+  type        = string
+  description = "BigQuery dataset id for presentation tables."
+  default     = "presentation"
+}

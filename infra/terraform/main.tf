@@ -13,9 +13,19 @@ resource "google_project_service" "storage" {
   service = "storage.googleapis.com"
 }
 
+resource "google_project_service" "bigquery" {
+  project = var.project_id
+  service = "bigquery.googleapis.com"
+}
+
 resource "google_project_service" "secretmanager" {
   project = var.project_id
   service = "secretmanager.googleapis.com"
+}
+
+resource "google_project_service" "cloudasset" {
+  project = var.project_id
+  service = "cloudasset.googleapis.com"
 }
 
 resource "google_service_account" "dbt_runner" {
@@ -55,4 +65,34 @@ resource "google_storage_bucket_iam_member" "dbt_runner_object_viewer" {
   bucket = google_storage_bucket.project.name
   role   = "roles/storage.objectViewer"
   member = "serviceAccount:${google_service_account.dbt_runner.email}"
+}
+
+resource "google_storage_bucket_iam_member" "dbt_runner_object_creator" {
+  bucket = google_storage_bucket.project.name
+  role   = "roles/storage.objectCreator"
+  member = "serviceAccount:${google_service_account.dbt_runner.email}"
+}
+
+resource "google_bigquery_dataset" "staging" {
+  dataset_id = var.staging_dataset_id
+  project    = var.project_id
+  location   = var.location
+
+  depends_on = [google_project_service.bigquery]
+}
+
+resource "google_bigquery_dataset" "raw" {
+  dataset_id = var.raw_dataset_id
+  project    = var.project_id
+  location   = var.location
+
+  depends_on = [google_project_service.bigquery]
+}
+
+resource "google_bigquery_dataset" "presentation" {
+  dataset_id = var.presentation_dataset_id
+  project    = var.project_id
+  location   = var.location
+
+  depends_on = [google_project_service.bigquery]
 }

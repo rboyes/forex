@@ -10,10 +10,4 @@ select
     date,
     rate,
     {{ dbt.current_timestamp() }} as updated_at
-from {{ source("staging", "rates") }}
-{% if is_incremental() %}
-where date > (
-    select coalesce(max(date), date '1900-01-01')
-    from {{ this }}
-)
-{% endif %}
+from {{ ref("staging_rates") }}
