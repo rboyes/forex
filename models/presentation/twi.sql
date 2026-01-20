@@ -12,6 +12,20 @@ with base_rates as (
     from {{ ref("staging_rates") }}
     group by 1, 2
 ),
+recent_dates as (
+    select
+        base_iso,
+        date,
+        max(updated_at) as updated_at
+    from {{ ref("staging_rates") }}
+    {% if is_incremental() %}
+    where updated_at > (
+        select coalesce(max(updated_at), timestamp '1900-01-01')
+        from {{ this }}
+    )
+    {% endif %}
+    group by 1, 2
+),
 base_dates as (
     select
         base_iso,
@@ -42,9 +56,12 @@ twi_values as (
         bv.base_iso,
         bv.date,
         (bv.avg_rate / bi.base_avg_rate) * 100.0 as rate,
-        {{ dbt.current_timestamp() }} as updated_at
+        rd.updated_at as updated_at
     from base_values bv
     join base_index bi
         on bv.base_iso = bi.base_iso
+    join recent_dates rd
+        on bv.base_iso = rd.base_iso
+        and bv.date = rd.date
 )
 select * from twi_values

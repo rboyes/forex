@@ -9,5 +9,11 @@ select
     to_iso,
     date,
     rate,
-    {{ dbt.current_timestamp() }} as updated_at
+    updated_at
 from {{ ref("staging_rates") }}
+{% if is_incremental() %}
+where updated_at > (
+    select coalesce(max(updated_at), timestamp '1900-01-01')
+    from {{ this }}
+)
+{% endif %}
