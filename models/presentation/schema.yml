@@ -6,15 +6,33 @@ sources:
     tables:
       - name: rates
         description: External table over newline-delimited JSON files in GCS.
+        tests:
+          - dbt_utils.unique_combination_of_columns:
+              arguments:
+                combination_of_columns:
+                  - base_iso
+                  - to_iso
+                  - date
         columns:
           - name: base_iso
             description: ISO currency code for the base currency (fixed to EUR in the downloader).
+            tests:
+              - not_null
           - name: to_iso
             description: ISO currency code for the quoted currency.
+            tests:
+              - not_null
           - name: date
             description: UTC date of the FX rate.
+            tests:
+              - not_null
+              - no_future_dates:
+                  arguments:
+                    column_name: date
           - name: rate
             description: FX rate quoted as one unit of base_iso in to_iso.
+            tests:
+              - not_null
           - name: updated_at
             description: UTC timestamp when the row was written by the downloader.
 

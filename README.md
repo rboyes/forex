@@ -89,7 +89,7 @@ export GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/dbt-runner.json
 ```
 
 ```bash
-uv run python downloader.py
+uv run python scripts/downloader.py
 uv run dbt run
 ```
 

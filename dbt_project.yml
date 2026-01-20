@@ -17,13 +17,13 @@ on-run-start:
 models:
   forex:
     +persist_docs:
-      relation: true
-      columns: true
+      +relation: true
+      +columns: true
     presentation:
       +schema: "presentation"
 
 sources:
   forex:
     +persist_docs:
-      relation: true
-      columns: true
+      +relation: true
+      +columns: true

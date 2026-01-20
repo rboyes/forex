@@ -4,7 +4,7 @@ Project: Forex rates downloader that stores historical data in BigQuery via GCS.
 
 ## Quick Start
 - Install deps: `uv sync`
-- Run downloader: `uv run python downloader.py`
+- Run downloader: `uv run python scripts/downloader.py`
 - Run dbt: `uv run dbt run`
 - Move incoming JSON after processing: `gcloud storage mv "gs://forex-20260115/json/incoming/*.json" gs://forex-20260115/json/processed/`
 

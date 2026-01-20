@@ -8,6 +8,7 @@ on:
 permissions:
   contents: read
   id-token: write
+  checks: write
 
 jobs:
   pipeline:
@@ -36,8 +37,26 @@ jobs:
       - name: Install dependencies
         run: uv sync
 
+      - name: Install dbt packages
+        run: uv run dbt deps
+
       - name: Run downloader
-        run: uv run python downloader.py
+        run: uv run python scripts/downloader.py
+
+      - name: Test raw source
+        run: uv run dbt test --select source:raw.rates --target ci
+
+      - name: Convert dbt test results to JUnit
+        if: always()
+        run: uv run python scripts/dbt_test_to_junit.py target/run_results.json target/dbt_test_results.xml
+
+      - name: Publish test report
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: dbt tests
+          path: target/dbt_test_results.xml
+          reporter: java-junit
 
       - name: Run dbt
         run: uv run dbt run --target ci
