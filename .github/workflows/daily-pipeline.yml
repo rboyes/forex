@@ -1,0 +1,46 @@
+name: Daily Forex Pipeline
+
+on:
+  schedule:
+    - cron: "0 18 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_DBT_WIF_SERVICE_ACCOUNT }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run downloader
+        run: uv run python downloader.py
+
+      - name: Run dbt
+        run: uv run dbt run
+
+      - name: Move incoming JSON to processed
+        run: gcloud storage mv "gs://forex-20260115/json/incoming/*.json" gs://forex-20260115/json/processed/

@@ -39,3 +39,21 @@ variable "presentation_dataset_id" {
   description = "BigQuery dataset id for presentation tables."
   default     = "presentation"
 }
+
+variable "wif_pool_id" {
+  type        = string
+  description = "Workload Identity Pool id for GitHub Actions."
+  default     = "github-pool"
+}
+
+variable "wif_repository" {
+  type        = string
+  description = "GitHub repository allowed to impersonate service accounts."
+  default     = "rboyes/forex"
+}
+
+variable "terraform_runner_service_account_email" {
+  type        = string
+  description = "Service account email used by the Terraform GitHub Actions workflow."
+  default     = "terraform-runner@forex-20260115.iam.gserviceaccount.com"
+}
