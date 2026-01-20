@@ -44,6 +44,42 @@ Basic API download and DBT transform using BigQuery + GCS.
   terraform apply
   ```
 
+## GitHub Actions (Terraform via Workload Identity)
+
+The Terraform workflow is manual-only. Configure Workload Identity and set GitHub secrets:
+
+```bash
+PROJECT_ID=forex-20260115
+POOL_ID=github-pool
+PROVIDER_ID=github-provider
+
+gcloud iam workload-identity-pools create $POOL_ID \
+  --project $PROJECT_ID \
+  --location global \
+  --display-name "GitHub Actions pool"
+
+gcloud iam workload-identity-pools providers create-oidc $PROVIDER_ID \
+  --project $PROJECT_ID \
+  --location global \
+  --workload-identity-pool $POOL_ID \
+  --display-name "GitHub Actions provider" \
+  --issuer-uri "https://token.actions.githubusercontent.com" \
+  --attribute-mapping "google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.ref=assertion.ref" \
+  --attribute-condition "assertion.repository=='rboyes/forex'"
+
+PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format="value(projectNumber)")
+SERVICE_ACCOUNT="terraform-runner@${PROJECT_ID}.iam.gserviceaccount.com"
+
+gcloud iam service-accounts add-iam-policy-binding $SERVICE_ACCOUNT \
+  --project $PROJECT_ID \
+  --role roles/iam.workloadIdentityUser \
+  --member "principalSet://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${POOL_ID}/attribute.repository/rboyes/forex"
+```
+
+Add GitHub repo secrets:
+- `GCP_WIF_PROVIDER`: `projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/POOL_ID/providers/PROVIDER_ID`
+- `GCP_WIF_SERVICE_ACCOUNT`: `terraform-runner@forex-20260115.iam.gserviceaccount.com`
+
 ## Run locally
 
 Create a dbt runner key if you plan to run dbt locally:
