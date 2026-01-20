@@ -1,4 +1,5 @@
 # Foreign exchange DBT project in Google Cloud/BigQuery
+[![Daily Forex Pipeline](https://github.com/rboyes/forex/actions/workflows/daily-pipeline.yml/badge.svg)](https://github.com/rboyes/forex/actions/workflows/daily-pipeline.yml)
 
 Basic API download and DBT transform using BigQuery + GCS.
 
