@@ -36,17 +36,13 @@ def download_rates(
 
 def build_rows(payload: dict[str, Any]) -> list[dict[str, Any]]:
     base_iso = payload["base"]
-    rows: list[dict[str, Any]] = []
+    rows: dict[tuple[str, str, str], dict[str, Any]] = {}
     updated_at = dt.datetime.now(dt.timezone.utc)
     updated_at_value = updated_at.isoformat(timespec="seconds").replace("+00:00", "Z")
     date_value = dt.date.fromisoformat(payload["date"])
-    seen: set[tuple[str, str, dt.date]] = set()
     for to_iso, rate in payload["rates"].items():
-        key = (base_iso, to_iso, date_value)
-        if key in seen:
-            continue
-        seen.add(key)
-        rows.append(
+        key = (base_iso, to_iso, date_value.isoformat())
+        rows[key] = (
             {
                 "base_iso": base_iso,
                 "to_iso": to_iso,
@@ -56,7 +52,7 @@ def build_rows(payload: dict[str, Any]) -> list[dict[str, Any]]:
             }
         )
 
-    return rows
+    return list(rows.values())
 
 
 def write_json_to_gcs(
@@ -155,10 +151,7 @@ def main() -> None:
         )
         current_date += dt.timedelta(days=1)
 
-    if total_inserted:
-        print(f"Uploaded {total_inserted} rows to gs://{args.bucket_name}/{args.prefix}.")
-    else:
-        print("No new rates inserted.")
+    print(f"Uploaded {total_inserted} rows to gs://{args.bucket_name}/{args.prefix}.")
 
 
 if __name__ == "__main__":
