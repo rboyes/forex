@@ -43,8 +43,8 @@ jobs:
       - name: Run downloader
         run: uv run python scripts/downloader.py
 
-      - name: Test raw source
-        run: uv run dbt test --select source:raw.rates --target ci
+      - name: Test staging source
+        run: uv run dbt test --select source:staging.rates --target ci
 
       - name: Convert dbt test results to JUnit
         if: always()
@@ -60,11 +60,3 @@ jobs:
 
       - name: Run dbt
         run: uv run dbt run --target ci
-
-      - name: Move incoming JSON to processed
-        run: |
-          if gcloud storage ls "gs://forex-20260115/json/incoming/*.json" >/dev/null 2>&1; then
-            gcloud storage mv "gs://forex-20260115/json/incoming/*.json" gs://forex-20260115/json/processed/
-          else
-            echo "No incoming JSON files to move."
-          fi

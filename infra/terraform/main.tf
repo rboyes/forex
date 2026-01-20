@@ -98,14 +98,6 @@ resource "google_bigquery_dataset" "staging" {
   depends_on = [google_project_service.bigquery]
 }
 
-resource "google_bigquery_dataset" "raw" {
-  dataset_id = var.raw_dataset_id
-  project    = var.project_id
-  location   = var.location
-
-  depends_on = [google_project_service.bigquery]
-}
-
 resource "google_bigquery_dataset" "presentation" {
   dataset_id = var.presentation_dataset_id
   project    = var.project_id

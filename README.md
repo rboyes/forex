@@ -1,7 +1,7 @@
 # Foreign exchange DBT project in Google Cloud/BigQuery
 [![Daily Forex Pipeline](https://github.com/rboyes/forex/actions/workflows/daily-pipeline.yml/badge.svg)](https://github.com/rboyes/forex/actions/workflows/daily-pipeline.yml)
 
-Basic API download and DBT transform using BigQuery + GCS.
+Basic API download and DBT transform using BigQuery.
 
 ## Google cloud setup
 
@@ -94,8 +94,3 @@ uv run python scripts/downloader.py
 uv run dbt run
 ```
 
-Move processed JSON files out of incoming:
-
-```bash
-gcloud storage mv "gs://forex-20260115/json/incoming/*.json" gs://forex-20260115/json/processed/
-```

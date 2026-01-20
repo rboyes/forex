@@ -28,12 +28,6 @@ variable "staging_dataset_id" {
   default     = "staging"
 }
 
-variable "raw_dataset_id" {
-  type        = string
-  description = "BigQuery dataset id for raw external tables."
-  default     = "raw"
-}
-
 variable "presentation_dataset_id" {
   type        = string
   description = "BigQuery dataset id for presentation tables."

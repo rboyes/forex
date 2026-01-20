@@ -8,12 +8,6 @@ model-paths: ["models"]
 target-path: "target"
 clean-targets: ["target", "dbt_packages"]
 
-vars:
-  raw_rates_gcs_uri: "gs://forex-20260115/json/incoming/*.json"
-
-on-run-start:
-  - "{{ ensure_raw_rates_external() }}"
-
 models:
   forex:
     +persist_docs:

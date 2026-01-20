@@ -1,11 +1,12 @@
 import argparse
 import datetime as dt
-import json
-from typing import Any
+from typing import Any, Iterator
 
+import dlt
 import requests
-from google.cloud import bigquery
-from google.cloud import storage
+from dlt.destinations import bigquery
+from google.cloud import bigquery as bq
+from google.api_core import exceptions as gcloud_exceptions
 
 
 BASE_ISO = "EUR"
@@ -18,11 +19,10 @@ def download_rates(
     iso_codes: str,
     date: dt.date,
 ) -> dict[str, Any]:
-    symbols_param = iso_codes
     url = f"{FOREX_URL}/{date.isoformat()}"
     params = {
         "base": base_iso,
-        "symbols": symbols_param,
+        "symbols": iso_codes,
     }
     response = requests.get(
         url,
@@ -30,64 +30,57 @@ def download_rates(
         timeout=30,
     )
     response.raise_for_status()
-    payload = response.json()
-    return payload
+    return response.json()
 
 
-def build_rows(payload: dict[str, Any]) -> list[dict[str, Any]]:
+def build_rows(payload: dict[str, Any], timestamp: dt.datetime) -> list[dict[str, Any]]:
     base_iso = payload["base"]
     rows: dict[tuple[str, str, str], dict[str, Any]] = {}
-    updated_at = dt.datetime.now(dt.timezone.utc)
-    updated_at_value = updated_at.isoformat(timespec="seconds").replace("+00:00", "Z")
     date_value = dt.date.fromisoformat(payload["date"])
     for to_iso, rate in payload["rates"].items():
         key = (base_iso, to_iso, date_value.isoformat())
-        rows[key] = (
-            {
-                "base_iso": base_iso,
-                "to_iso": to_iso,
-                "date": date_value.isoformat(),
-                "rate": float(rate),
-                "updated_at": updated_at_value,
-            }
-        )
+        rows[key] = {
+            "base_iso": base_iso,
+            "to_iso": to_iso,
+            "date": date_value,
+            "rate": float(rate),
+            "created_at": timestamp,
+            "updated_at": timestamp,
+        }
 
     return list(rows.values())
 
 
-def write_json_to_gcs(
-    client: storage.Client,
-    bucket_name: str,
-    prefix: str,
-    date_value: dt.date,
-    rows: list[dict[str, Any]],
-) -> int:
-    if not rows:
-        return 0
-    normalized_prefix = prefix.rstrip("/")
-    object_name = f"{normalized_prefix}/{date_value.isoformat()}.json"
-    payload = "\n".join(json.dumps(row, separators=(",", ":")) for row in rows) + "\n"
-    bucket = client.bucket(bucket_name)
-    blob = bucket.blob(object_name)
-    blob.upload_from_string(payload, content_type="application/x-ndjson")
-    return len(rows)
+def resolve_end_date(now_utc: dt.datetime, cutoff_hour: int = 16) -> dt.date:
+    if now_utc.time() >= dt.time(cutoff_hour, 0):
+        return now_utc.date()
+    return now_utc.date() - dt.timedelta(days=1)
+
+
+def iter_rates(
+    base_iso: str,
+    iso_codes: str,
+    start_date: dt.date,
+    end_date: dt.date,
+) -> Iterator[dict[str, Any]]:
+    current_date = start_date
+    while current_date <= end_date:
+        payload = download_rates(base_iso, iso_codes, current_date)
+        timestamp = dt.datetime.now(dt.timezone.utc)
+        for row in build_rows(payload, timestamp):
+            yield row
+        current_date += dt.timedelta(days=1)
 
 
 def get_watermark(
-    client: bigquery.Client,
+    client: bq.Client,
     project_id: str,
     table_id: str,
-    base_iso: str,
 ) -> dt.date:
-    query = f"select max(date) as max_date from `{project_id}.{table_id}` where base_iso = @base_iso"
-    job_config = bigquery.QueryJobConfig(
-        query_parameters=[
-            bigquery.ScalarQueryParameter("base_iso", "STRING", base_iso),
-        ]
-    )
+    query = f"select max(date) as max_date from `{project_id}.{table_id}`"
     try:
-        result = client.query(query, job_config=job_config).result()
-    except Exception:
+        result = client.query(query).result()
+    except gcloud_exceptions.NotFound:
         return DEFAULT_START_DATE
     row = next(iter(result), None)
     if row and row.max_date:
@@ -95,10 +88,30 @@ def get_watermark(
     return DEFAULT_START_DATE
 
 
+@dlt.resource(
+    name="rates",
+    primary_key=("base_iso", "to_iso", "date"),
+    write_disposition="merge",
+)
+def rates_resource(
+    iso_codes: str,
+    start_date: dt.date,
+    counter: dict[str, int],
+) -> Iterator[dict[str, Any]]:
+
+    now_utc = dt.datetime.now(dt.timezone.utc)
+    end_date = resolve_end_date(now_utc)
+    if end_date < start_date:
+        return
+
+    for row in iter_rates(BASE_ISO, iso_codes, start_date, end_date):
+        counter["rows"] += 1
+        yield row
+
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Download forex rates into GCS as newline-delimited JSON for EUR.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        description="Download forex rates into BigQuery staging for EUR.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
         "--iso-codes",
@@ -106,52 +119,32 @@ def main() -> None:
         help="Comma-separated ISO currency codes",
     )
     parser.add_argument(
-        "--bucket-name",
-        default="forex-20260115",
-        help="GCS bucket name for JSON output.",
-    )
-    parser.add_argument(
-        "--prefix",
-        default="json/incoming",
-        help="GCS prefix for JSON output.",
-    )
-    parser.add_argument(
-        "--bq-project",
-        default="forex-20260115",
-        help="BigQuery project id that holds presentation.rates.",
-    )
-    parser.add_argument(
-        "--bq-watermark-table",
-        default="presentation.rates",
-        help="BigQuery table (dataset.table) used for watermarking.",
+        "--bq-table",
+        default="staging.rates",
+        help="BigQuery table (dataset.table) for staging rates.",
     )
     args = parser.parse_args()
 
-    iso_codes = args.iso_codes
-    base_iso = BASE_ISO
+    if "." not in args.bq_table:
+        raise SystemExit("--bq-table must be in dataset.table format")
+    dataset_name, table_name = args.bq_table.split(".", 1)
+    if table_name != "rates":
+        raise SystemExit("dlt loader currently supports only the rates table name")
 
-    now_utc = dt.datetime.now(dt.timezone.utc)
-    if now_utc.time() >= dt.time(16, 0):
-        end_date = now_utc.date()
-    else:
-        end_date = now_utc.date() - dt.timedelta(days=1)
-    total_inserted = 0
-    storage_client = storage.Client()
-    bq_client = bigquery.Client(project=args.bq_project)
-    current_date = get_watermark(bq_client, args.bq_project, args.bq_watermark_table, base_iso)
-    while current_date <= end_date:
-        payload = download_rates(base_iso, iso_codes, current_date)
-        rows = build_rows(payload)
-        total_inserted += write_json_to_gcs(
-            storage_client,
-            args.bucket_name,
-            args.prefix,
-            current_date,
-            rows,
-        )
-        current_date += dt.timedelta(days=1)
+    bq_client = bq.Client(project="forex-20260115")
+    start_date = get_watermark(bq_client, "forex-20260115", args.bq_table)
 
-    print(f"Uploaded {total_inserted} rows to gs://{args.bucket_name}/{args.prefix}.")
+    pipeline = dlt.pipeline(
+        pipeline_name="forex",
+        destination=bigquery(
+            location="europe-west2",
+            project_id="forex-20260115",
+        ),
+        dataset_name=dataset_name,
+    )
+    counter = {"rows": 0}
+    pipeline.run(rates_resource(args.iso_codes, start_date, counter))
+    print(f"Loaded {counter['rows']} rows into {dataset_name}.rates")
 
 
 if __name__ == "__main__":
