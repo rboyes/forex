@@ -1,7 +1,18 @@
 # Foreign exchange DBT project in Google Cloud/BigQuery
 [![Daily Forex Pipeline](https://github.com/rboyes/forex/actions/workflows/daily-pipeline.yml/badge.svg)](https://github.com/rboyes/forex/actions/workflows/daily-pipeline.yml)
 
-Basic API download and DBT transform using BigQuery.
+Daily pipeline that pulls historical FX rates from Frankfurter, loads them into
+BigQuery staging, and builds presentation models (rates + TWI = trade weighted index) with dbt. 
+Runs via GitHub Actions and keeps incremental history by date.
+
+```mermaid
+flowchart LR
+  A[Frankfurter API] --> B[Downloader (dlt)]
+  B --> C[BigQuery staging.rates]
+  C --> D[dbt models]
+  D --> E[presentation.rates]
+  D --> F[presentation.twi]
+```
 
 ## Google cloud setup
 
