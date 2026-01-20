@@ -7,11 +7,11 @@ Runs via GitHub Actions and keeps incremental history by date.
 
 ```mermaid
 flowchart LR
-  A[Frankfurter API] --> B[Downloader (dlt)]
-  B --> C[BigQuery staging.rates]
+  A[Frankfurter API] --> B[Downloader dlt]
+  B --> C[BigQuery staging_rates]
   C --> D[dbt models]
-  D --> E[presentation.rates]
-  D --> F[presentation.twi]
+  D --> E[presentation_rates]
+  D --> F[presentation_twi]
 ```
 
 ## Google cloud setup
