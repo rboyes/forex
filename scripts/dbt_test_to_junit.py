@@ -21,9 +21,7 @@ def main() -> int:
         test_name = result.get("unique_id", "unknown")
         status = result.get("status", "unknown")
         time_value = str(result.get("execution_time", 0))
-        testcase = ET.SubElement(
-            testsuite, "testcase", name=test_name, time=time_value
-        )
+        testcase = ET.SubElement(testsuite, "testcase", name=test_name, time=time_value)
 
         if status == "fail":
             message = result.get("message") or "dbt test failed"

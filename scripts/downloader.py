@@ -98,7 +98,6 @@ def rates_resource(
     start_date: dt.date,
     counter: dict[str, int],
 ) -> Iterator[dict[str, Any]]:
-
     now_utc = dt.datetime.now(dt.timezone.utc)
     end_date = resolve_end_date(now_utc)
     if end_date < start_date:
@@ -107,6 +106,7 @@ def rates_resource(
     for row in iter_rates(BASE_ISO, iso_codes, start_date, end_date):
         counter["rows"] += 1
         yield row
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(
