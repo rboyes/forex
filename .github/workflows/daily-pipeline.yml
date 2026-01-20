@@ -43,4 +43,9 @@ jobs:
         run: uv run dbt run --target ci
 
       - name: Move incoming JSON to processed
-        run: gcloud storage mv "gs://forex-20260115/json/incoming/*.json" gs://forex-20260115/json/processed/
+        run: |
+          if gcloud storage ls "gs://forex-20260115/json/incoming/*.json" >/dev/null 2>&1; then
+            gcloud storage mv "gs://forex-20260115/json/incoming/*.json" gs://forex-20260115/json/processed/
+          else
+            echo "No incoming JSON files to move."
+          fi
