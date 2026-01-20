@@ -1,7 +1,8 @@
 {{ config(
     materialized="incremental",
     unique_key=["base_iso", "date"],
-    schema="presentation"
+    schema="presentation",
+    on_schema_change="append_new_columns"
 ) }}
 
 with base_rates as (
@@ -16,6 +17,7 @@ recent_dates as (
     select
         base_iso,
         date,
+        max(created_at) as created_at,
         max(updated_at) as updated_at
     from {{ ref("rates") }}
     {% if is_incremental() %}
@@ -56,6 +58,7 @@ twi_values as (
         bv.base_iso,
         bv.date,
         (bv.avg_rate / bi.base_avg_rate) * 100.0 as rate,
+        rd.created_at as created_at,
         rd.updated_at as updated_at
     from base_values bv
     join base_index bi

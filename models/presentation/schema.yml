@@ -1,11 +1,11 @@
 version: 2
 
 sources:
-  - name: raw
-    schema: raw
+  - name: staging
+    schema: staging
     tables:
       - name: rates
-        description: External table over newline-delimited JSON files in GCS.
+        description: FX rates loaded directly into BigQuery staging.
         tests:
           - dbt_utils.unique_combination_of_columns:
               arguments:
@@ -33,25 +33,18 @@ sources:
             description: FX rate quoted as one unit of base_iso in to_iso.
             tests:
               - not_null
+          - name: created_at
+            description: UTC timestamp when the row was first written by the downloader.
+            tests:
+              - not_null
           - name: updated_at
             description: UTC timestamp when the row was written by the downloader.
+            tests:
+              - not_null
 
 models:
-  - name: staging_rates
-    description: Staging table loaded from the incoming JSON files.
-    columns:
-      - name: base_iso
-        description: ISO currency code for the base currency.
-      - name: to_iso
-        description: ISO currency code for the quoted currency.
-      - name: date
-        description: UTC date of the FX rate.
-      - name: rate
-        description: FX rate quoted as one unit of base_iso in to_iso.
-      - name: updated_at
-        description: UTC timestamp when the row was last written to staging.
   - name: rates
-    description: Mirror of staging.rates with refreshed updated_at timestamps from dbt.
+    description: Mirror of staging.rates in the presentation dataset.
     columns:
       - name: base_iso
         description: ISO currency code for the base currency.
@@ -61,8 +54,10 @@ models:
         description: UTC date of the FX rate.
       - name: rate
         description: FX rate quoted as one unit of base_iso in to_iso.
+      - name: created_at
+        description: UTC timestamp when the row was first written by the downloader.
       - name: updated_at
-        description: UTC timestamp when the presentation.rates row was last updated by dbt.
+        description: UTC timestamp when the staging row was last updated.
   - name: twi
     description: Equal-weight trade-weighted index per base currency, indexed to 100 on the earliest date.
     columns:
@@ -72,5 +67,7 @@ models:
         description: UTC date of the index value.
       - name: rate
         description: Trade-weighted index value (base date = 100).
+      - name: created_at
+        description: UTC timestamp when the underlying rates were first written.
       - name: updated_at
-        description: UTC timestamp when the presentation.twi row was last updated by dbt.
+        description: UTC timestamp when the underlying rates were last updated.
