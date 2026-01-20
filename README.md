@@ -94,3 +94,10 @@ uv run python scripts/downloader.py
 uv run dbt run
 ```
 
+## Developer tooling - linting, formatting and type checking
+
+```bash
+uv run ruff check .
+uv run ruff format .
+uv run ty check .
+```
