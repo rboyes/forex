@@ -1,9 +1,11 @@
 import argparse
 import datetime as dt
+import json
 from typing import Any
 
-import duckdb
 import requests
+from google.cloud import bigquery
+from google.cloud import storage
 
 
 BASE_ISO = "EUR"
@@ -32,10 +34,11 @@ def download_rates(
     return payload
 
 
-def write_rates(conn: duckdb.DuckDBPyConnection, payload: dict[str, Any]) -> int:
+def build_rows(payload: dict[str, Any]) -> list[dict[str, Any]]:
     base_iso = payload["base"]
-    rows: list[tuple[str, str, dt.date, float, dt.datetime]] = []
+    rows: list[dict[str, Any]] = []
     updated_at = dt.datetime.now(dt.timezone.utc)
+    updated_at_value = updated_at.isoformat(timespec="seconds").replace("+00:00", "Z")
     date_value = dt.date.fromisoformat(payload["date"])
     seen: set[tuple[str, str, dt.date]] = set()
     for to_iso, rate in payload["rates"].items():
@@ -43,69 +46,62 @@ def write_rates(conn: duckdb.DuckDBPyConnection, payload: dict[str, Any]) -> int
         if key in seen:
             continue
         seen.add(key)
-        rows.append((base_iso, to_iso, date_value, float(rate), updated_at))
+        rows.append(
+            {
+                "base_iso": base_iso,
+                "to_iso": to_iso,
+                "date": date_value.isoformat(),
+                "rate": float(rate),
+                "updated_at": updated_at_value,
+            }
+        )
 
+    return rows
+
+
+def write_json_to_gcs(
+    client: storage.Client,
+    bucket_name: str,
+    prefix: str,
+    date_value: dt.date,
+    rows: list[dict[str, Any]],
+) -> int:
     if not rows:
         return 0
-
-    conn.execute("CREATE SCHEMA IF NOT EXISTS staging")
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS staging.rates (
-            base_iso TEXT,
-            to_iso TEXT,
-            date DATE,
-            rate DOUBLE,
-            updated_at TIMESTAMP
-        )
-        """
-    )
-    conn.executemany(
-        """
-        MERGE INTO staging.rates AS target
-        USING (
-            SELECT
-                ? AS base_iso,
-                ? AS to_iso,
-                ? AS date,
-                ? AS rate,
-                ? AS updated_at
-        ) AS source
-        ON target.base_iso = source.base_iso
-            AND target.to_iso = source.to_iso
-            AND target.date = source.date
-        WHEN MATCHED THEN
-            UPDATE SET
-                rate = source.rate,
-                updated_at = source.updated_at
-        WHEN NOT MATCHED THEN
-            INSERT (base_iso, to_iso, date, rate, updated_at)
-            VALUES (source.base_iso, source.to_iso, source.date, source.rate, source.updated_at)
-        """,
-        rows,
-    )
+    normalized_prefix = prefix.rstrip("/")
+    object_name = f"{normalized_prefix}/{date_value.isoformat()}.json"
+    payload = "\n".join(json.dumps(row, separators=(",", ":")) for row in rows) + "\n"
+    bucket = client.bucket(bucket_name)
+    blob = bucket.blob(object_name)
+    blob.upload_from_string(payload, content_type="application/x-ndjson")
     return len(rows)
 
 
 def get_watermark(
-    conn: duckdb.DuckDBPyConnection,
+    client: bigquery.Client,
+    project_id: str,
+    table_id: str,
     base_iso: str,
 ) -> dt.date:
+    query = f"select max(date) as max_date from `{project_id}.{table_id}` where base_iso = @base_iso"
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("base_iso", "STRING", base_iso),
+        ]
+    )
     try:
-        result = conn.execute(
-            "SELECT MAX(date) FROM staging.rates WHERE base_iso = ?",
-            [base_iso],
-        ).fetchone()
-    except duckdb.CatalogException:
+        result = client.query(query, job_config=job_config).result()
+    except Exception:
         return DEFAULT_START_DATE
-    if result and result[0]:
-        return result[0] + dt.timedelta(days=1)
+    row = next(iter(result), None)
+    if row and row.max_date:
+        return row.max_date + dt.timedelta(days=1)
     return DEFAULT_START_DATE
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Download forex rates into DuckDB for EUR.",
+        description="Download forex rates into GCS as newline-delimited JSON for EUR.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     parser.add_argument(
@@ -114,9 +110,24 @@ def main() -> None:
         help="Comma-separated ISO currency codes",
     )
     parser.add_argument(
-        "--db-path",
-        required=True,
-        help="Path to the DuckDB database file.",
+        "--bucket-name",
+        default="forex-20260115",
+        help="GCS bucket name for JSON output.",
+    )
+    parser.add_argument(
+        "--prefix",
+        default="json/incoming",
+        help="GCS prefix for JSON output.",
+    )
+    parser.add_argument(
+        "--bq-project",
+        default="forex-20260115",
+        help="BigQuery project id that holds presentation.rates.",
+    )
+    parser.add_argument(
+        "--bq-watermark-table",
+        default="presentation.rates",
+        help="BigQuery table (dataset.table) used for watermarking.",
     )
     args = parser.parse_args()
 
@@ -125,15 +136,23 @@ def main() -> None:
 
     end_date = dt.date.today() - dt.timedelta(days=1)
     total_inserted = 0
-    with duckdb.connect(args.db_path) as conn:
-        current_date = get_watermark(conn, base_iso)
-        while current_date <= end_date:
-            payload = download_rates(base_iso, iso_codes, current_date)
-            total_inserted += write_rates(conn, payload)
-            current_date += dt.timedelta(days=1)
+    storage_client = storage.Client()
+    bq_client = bigquery.Client(project=args.bq_project)
+    current_date = get_watermark(bq_client, args.bq_project, args.bq_watermark_table, base_iso)
+    while current_date <= end_date:
+        payload = download_rates(base_iso, iso_codes, current_date)
+        rows = build_rows(payload)
+        total_inserted += write_json_to_gcs(
+            storage_client,
+            args.bucket_name,
+            args.prefix,
+            current_date,
+            rows,
+        )
+        current_date += dt.timedelta(days=1)
 
     if total_inserted:
-        print(f"Inserted {total_inserted} rows into raw.rates.")
+        print(f"Uploaded {total_inserted} rows to gs://{args.bucket_name}/{args.prefix}.")
     else:
         print("No new rates inserted.")
 

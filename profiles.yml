@@ -2,6 +2,10 @@ forex:
   target: dev
   outputs:
     dev:
-      type: duckdb
-      path: forex.db
-      threads: 1
+      type: bigquery
+      method: service-account
+      project: forex-20260115
+      dataset: presentation
+      keyfile: dbt-runner.json
+      location: europe-west2
+      threads: 4

@@ -1,11 +1,11 @@
 version: 2
 
 sources:
-  - name: staging
-    schema: staging
+  - name: raw
+    schema: raw
     tables:
       - name: rates
-        description: Daily FX rates loaded from the Fixer API historical endpoint.
+        description: External table over newline-delimited JSON files in GCS.
         columns:
           - name: base_iso
             description: ISO currency code for the base currency (fixed to EUR in the downloader).
@@ -16,9 +16,22 @@ sources:
           - name: rate
             description: FX rate quoted as one unit of base_iso in to_iso.
           - name: updated_at
-            description: UTC timestamp when the row was inserted into staging.
+            description: UTC timestamp when the row was written by the downloader.
 
 models:
+  - name: staging_rates
+    description: Staging table loaded from the incoming JSON files.
+    columns:
+      - name: base_iso
+        description: ISO currency code for the base currency.
+      - name: to_iso
+        description: ISO currency code for the quoted currency.
+      - name: date
+        description: UTC date of the FX rate.
+      - name: rate
+        description: FX rate quoted as one unit of base_iso in to_iso.
+      - name: updated_at
+        description: UTC timestamp when the row was last written to staging.
   - name: rates
     description: Mirror of staging.rates with refreshed updated_at timestamps from dbt.
     columns:

@@ -1,8 +1,8 @@
-# Foreign exchange DBT project in Google Cloud/DuckDB
+# Foreign exchange DBT project in Google Cloud/BigQuery
 
-Basic API download and DBT Transform using DuckDB and Google Cloud
+Basic API download and DBT transform using BigQuery + GCS.
 
-## Google cloud set up
+## Google cloud setup
 
 - Google cloud project created - call it forex-20260115
   ```bash
@@ -46,7 +46,27 @@ Basic API download and DBT Transform using DuckDB and Google Cloud
 
 ## Run locally
 
+Create a dbt runner key if you plan to run dbt locally:
+
 ```bash
-uv run downloader.py --db-path /tmp/forex.db
-uv run dbt run --target dev
+gcloud iam service-accounts keys create ./dbt-runner-key.json \
+  --iam-account "dbt-runner@forex-20260115.iam.gserviceaccount.com"
+chmod 600 dbt-runner-key.json
+```
+
+Set credentials (use terraform-runner.json for Terraform, dbt-runner-key.json for dbt/downloader):
+
+```bash
+export GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/dbt-runner-key.json
+```
+
+```bash
+uv run python downloader.py
+uv run dbt run
+```
+
+Move processed JSON files out of incoming:
+
+```bash
+gcloud storage mv "gs://forex-20260115/json/incoming/*.json" gs://forex-20260115/json/processed/
 ```
