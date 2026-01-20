@@ -71,7 +71,6 @@ def write_json_to_gcs(
     blob = bucket.blob(object_name)
     if blob.exists():
         print(f"Warning: overwriting existing object gs://{bucket_name}/{object_name}")
-        blob.delete()
     blob.upload_from_string(payload, content_type="application/x-ndjson")
     return len(rows)
 

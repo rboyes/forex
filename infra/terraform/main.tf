@@ -84,9 +84,9 @@ resource "google_storage_bucket_iam_member" "dbt_runner_object_viewer" {
   member = "serviceAccount:${google_service_account.dbt_runner.email}"
 }
 
-resource "google_storage_bucket_iam_member" "dbt_runner_object_creator" {
+resource "google_storage_bucket_iam_member" "dbt_runner_object_admin" {
   bucket = google_storage_bucket.project.name
-  role   = "roles/storage.objectCreator"
+  role   = "roles/storage.objectAdmin"
   member = "serviceAccount:${google_service_account.dbt_runner.email}"
 }
 
