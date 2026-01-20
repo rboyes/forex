@@ -134,7 +134,11 @@ def main() -> None:
     iso_codes = args.iso_codes
     base_iso = BASE_ISO
 
-    end_date = dt.date.today() - dt.timedelta(days=1)
+    now_utc = dt.datetime.now(dt.timezone.utc)
+    if now_utc.time() >= dt.time(16, 0):
+        end_date = now_utc.date()
+    else:
+        end_date = now_utc.date() - dt.timedelta(days=1)
     total_inserted = 0
     storage_client = storage.Client()
     bq_client = bigquery.Client(project=args.bq_project)
