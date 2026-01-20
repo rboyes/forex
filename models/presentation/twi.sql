@@ -9,7 +9,7 @@ with base_rates as (
         base_iso,
         date,
         avg(rate) as avg_rate
-    from {{ ref("staging_rates") }}
+    from {{ ref("rates") }}
     group by 1, 2
 ),
 recent_dates as (
@@ -17,7 +17,7 @@ recent_dates as (
         base_iso,
         date,
         max(updated_at) as updated_at
-    from {{ ref("staging_rates") }}
+    from {{ ref("rates") }}
     {% if is_incremental() %}
     where updated_at > (
         select coalesce(max(updated_at), timestamp '1900-01-01')
