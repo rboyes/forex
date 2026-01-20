@@ -49,15 +49,15 @@ Basic API download and DBT transform using BigQuery + GCS.
 Create a dbt runner key if you plan to run dbt locally:
 
 ```bash
-gcloud iam service-accounts keys create ./dbt-runner-key.json \
+gcloud iam service-accounts keys create ./dbt-runner.json \
   --iam-account "dbt-runner@forex-20260115.iam.gserviceaccount.com"
-chmod 600 dbt-runner-key.json
+chmod 600 dbt-runner.json
 ```
 
-Set credentials (use terraform-runner.json for Terraform, dbt-runner-key.json for dbt/downloader):
+Set credentials (use terraform-runner.json for Terraform, dbt-runner.json for dbt/downloader):
 
 ```bash
-export GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/dbt-runner-key.json
+export GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/dbt-runner.json
 ```
 
 ```bash
