@@ -40,7 +40,7 @@ jobs:
         run: uv run python downloader.py
 
       - name: Run dbt
-        run: uv run dbt run
+        run: uv run dbt run --target ci
 
       - name: Move incoming JSON to processed
         run: gcloud storage mv "gs://forex-20260115/json/incoming/*.json" gs://forex-20260115/json/processed/

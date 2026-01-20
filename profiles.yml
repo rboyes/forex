@@ -9,3 +9,10 @@ forex:
       keyfile: dbt-runner.json
       location: europe-west2
       threads: 4
+    ci:
+      type: bigquery
+      method: oauth
+      project: forex-20260115
+      dataset: presentation
+      location: europe-west2
+      threads: 4
