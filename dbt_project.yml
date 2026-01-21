@@ -21,3 +21,9 @@ sources:
     +persist_docs:
       +relation: true
       +columns: true
+
+seeds:
+  forex:
+    +schema: "staging"
+    seed_weights:
+      +alias: "seeds"

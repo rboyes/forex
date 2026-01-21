@@ -58,8 +58,17 @@ models:
         description: UTC timestamp when the row was first written by the downloader.
       - name: updated_at
         description: UTC timestamp when the staging row was last updated.
+  - name: weights
+    description: Presentation copy of seeded trade weights per currency.
+    columns:
+      - name: base_iso
+        description: ISO currency code for the base currency.
+      - name: to_iso
+        description: ISO currency code for the quoted currency.
+      - name: weight
+        description: Weight for the quoted currency (must sum to 1.0 per base).
   - name: twi
-    description: Equal-weight trade-weighted index per base currency, indexed to 100 on the earliest date.
+    description: Trade-weighted index per base currency, indexed to 100 on the earliest date.
     columns:
       - name: base_iso
         description: ISO currency code for the base currency.
