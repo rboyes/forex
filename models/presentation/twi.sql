@@ -5,12 +5,26 @@
     on_schema_change="append_new_columns"
 ) }}
 
-with base_rates as (
+with weighted_rates as (
+    select
+        r.base_iso,
+        r.to_iso,
+        r.date,
+        r.rate,
+        r.created_at,
+        r.updated_at,
+        w.weight
+    from {{ ref("rates") }} r
+    join {{ ref("weights") }} w
+        on r.base_iso = w.base_iso
+        and r.to_iso = w.to_iso
+),
+base_rates as (
     select
         base_iso,
         date,
-        avg(rate) as avg_rate
-    from {{ ref("rates") }}
+        sum(rate * weight) as avg_rate
+    from weighted_rates
     group by 1, 2
 ),
 recent_dates as (
@@ -19,7 +33,7 @@ recent_dates as (
         date,
         max(created_at) as created_at,
         max(updated_at) as updated_at
-    from {{ ref("rates") }}
+    from weighted_rates
     {% if is_incremental() %}
     where updated_at > (
         select coalesce(max(updated_at), timestamp '1900-01-01')

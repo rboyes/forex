@@ -1,0 +1,35 @@
+version: 2
+
+seeds:
+  - name: seed_weights
+    description: Seeded weights for trade-weighted index calculations.
+    columns:
+      - name: base_iso
+        description: ISO currency code for the base currency.
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["EUR"]
+      - name: to_iso
+        description: ISO currency code for the quoted currency.
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["GBP", "USD", "NZD", "CAD", "AUD", "JPY", "CNY"]
+      - name: weight
+        description: Weight for the quoted currency (must sum to 1.0 per base).
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - base_iso
+            - to_iso
+      - weights_sum:
+          weight_column: weight
+          group_by: base_iso
+          target_sum: 1.0
+          tolerance: 0.000001

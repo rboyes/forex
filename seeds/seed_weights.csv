@@ -1,0 +1,8 @@
+base_iso,to_iso,weight
+EUR,GBP,0.225
+EUR,USD,0.18
+EUR,NZD,0.135
+EUR,CAD,0.135
+EUR,AUD,0.135
+EUR,JPY,0.09
+EUR,CNY,0.1
