@@ -27,6 +27,16 @@ def download_rates(
     iso_codes: str,
     date: dt.date,
 ) -> dict[str, Any]:
+    """Fetch FX rates for one date from the Frankfurter API.
+
+    Args:
+        base_iso: Base currency ISO code.
+        iso_codes: Comma-separated ISO currency codes to quote.
+        date: Date to request rates for.
+
+    Returns:
+        Parsed JSON response payload.
+    """
     url = f"{FOREX_URL}/{date.isoformat()}"
     params = {
         "base": base_iso,
@@ -47,6 +57,17 @@ def iter_rates(
     start_date: dt.date,
     end_date: dt.date,
 ) -> Iterator[dict[str, Any]]:
+    """Yield deduped FX rate rows across an inclusive date range.
+
+    Args:
+        base_iso: Base currency ISO code.
+        iso_codes: Comma-separated ISO currency codes to quote.
+        start_date: First date to include.
+        end_date: Last date to include.
+
+    Yields:
+        Rows with base_iso, to_iso, date, rate, created_at, updated_at.
+    """
     rows: dict[tuple[str, str, str], dict[str, Any]] = {}
     current_date = start_date
     while current_date <= end_date:
@@ -73,6 +94,16 @@ def get_watermark(
     project_id: str,
     table_id: str,
 ) -> dt.date:
+    """Return the next date to load based on the max date in BigQuery.
+
+    Args:
+        client: BigQuery client used to query the watermark.
+        project_id: GCP project id containing the table.
+        table_id: Dataset.table id to inspect.
+
+    Returns:
+        Next date to load (max date + 1), or the default start date.
+    """
     query = f"select max(date) as max_date from `{project_id}.{table_id}`"
     try:
         result = client.query(query).result()
@@ -85,6 +116,15 @@ def get_watermark(
 
 
 def load_iso_codes(weights_path: Path, base_iso: str) -> str:
+    """Load ISO currency codes from the weights CSV for a base currency.
+
+    Args:
+        weights_path: Path to the weights CSV.
+        base_iso: Base currency ISO code to filter on.
+
+    Returns:
+        Comma-separated ISO currency codes found in the CSV.
+    """
     if not weights_path.exists():
         raise SystemExit(f"weights csv not found: {weights_path}")
     with weights_path.open(newline="") as handle:
@@ -117,6 +157,17 @@ def rates_resource(
     end_date: dt.date,
     counter: dict[str, int],
 ) -> Iterator[dict[str, Any]]:
+    """dlt resource that yields rate rows and counts them.
+
+    Args:
+        iso_codes: Comma-separated ISO currency codes to quote.
+        start_date: First date to include.
+        end_date: Last date to include.
+        counter: Mutable counter dict updated with row count.
+
+    Yields:
+        Rows to load into BigQuery.
+    """
     for row in iter_rates(BASE_ISO, iso_codes, start_date, end_date):
         counter["rows"] += 1
         yield row
