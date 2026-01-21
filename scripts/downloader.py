@@ -12,6 +12,7 @@ from google.api_core import exceptions as gcloud_exceptions
 BASE_ISO = "EUR"
 DEFAULT_START_DATE = dt.date(2026, 1, 2)
 FOREX_URL = "https://api.frankfurter.dev/v1"
+CUTOFF_TIME = dt.time(16, 0, 0) # Time before which we don't download today's x rates
 
 
 def download_rates(
@@ -49,12 +50,6 @@ def build_rows(payload: dict[str, Any], timestamp: dt.datetime) -> list[dict[str
         }
 
     return list(rows.values())
-
-
-def resolve_end_date(now_utc: dt.datetime, cutoff_hour: int = 16) -> dt.date:
-    if now_utc.time() >= dt.time(cutoff_hour, 0):
-        return now_utc.date()
-    return now_utc.date() - dt.timedelta(days=1)
 
 
 def iter_rates(
@@ -96,12 +91,9 @@ def get_watermark(
 def rates_resource(
     iso_codes: str,
     start_date: dt.date,
+    end_date: dt.date,
     counter: dict[str, int],
 ) -> Iterator[dict[str, Any]]:
-    now_utc = dt.datetime.now(dt.timezone.utc)
-    end_date = resolve_end_date(now_utc)
-    if end_date < start_date:
-        return
 
     for row in iter_rates(BASE_ISO, iso_codes, start_date, end_date):
         counter["rows"] += 1
@@ -142,8 +134,16 @@ def main() -> None:
         ),
         dataset_name=dataset_name,
     )
+
+    # Only download today if after the cut off time
+    now_utc = dt.datetime.now(dt.timezone.utc)
+    if now_utc.time() >= CUTOFF_TIME:
+        end_date = now_utc.date()
+    else:
+        end_date = now_utc.date() - dt.timedelta(days=1)
+
     counter = {"rows": 0}
-    pipeline.run(rates_resource(args.iso_codes, start_date, counter))
+    pipeline.run(rates_resource(args.iso_codes, start_date, end_date, counter))
     print(f"Loaded {counter['rows']} rows into {dataset_name}.rates")
 
 
