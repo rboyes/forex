@@ -15,7 +15,9 @@ BASE_ISO = "EUR"
 DEFAULT_START_DATE = dt.date(2026, 1, 2)
 FOREX_URL = "https://api.frankfurter.dev/v1"
 CUTOFF_TIME = dt.time(16, 0, 0)  # Time before which we don't download today's x rates
-WEIGHTS_CSV = (Path(__file__).resolve().parent / ".." / "seeds" / "seed_weights.csv").resolve()
+WEIGHTS_CSV = (
+    Path(__file__).resolve().parent / ".." / "seeds" / "seed_weights.csv"
+).resolve()
 PROJECT_ID = "forex-20260115"
 LOCATION = "europe-west2"
 
@@ -98,7 +100,9 @@ def load_iso_codes(weights_path: Path, base_iso: str) -> str:
             iso_codes.append(to_iso)
             seen.add(to_iso)
     if not iso_codes:
-        raise SystemExit(f"no currencies found for base_iso={base_iso} in {weights_path}")
+        raise SystemExit(
+            f"no currencies found for base_iso={base_iso} in {weights_path}"
+        )
     return ",".join(iso_codes)
 
 
