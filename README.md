@@ -78,25 +78,19 @@ gcloud iam workload-identity-pools providers create-oidc $PROVIDER_ID \
   --issuer-uri "https://token.actions.githubusercontent.com" \
   --attribute-mapping "google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.ref=assertion.ref" \
   --attribute-condition "assertion.repository=='rboyes/forex'"
-
+```
 Add GitHub repo secrets:
 - `GCP_WIF_PROVIDER`: `projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/POOL_ID/providers/PROVIDER_ID`
 - `GCP_WIF_SERVICE_ACCOUNT`: `terraform-runner@forex-20260115.iam.gserviceaccount.com`
 - `GCP_DBT_WIF_SERVICE_ACCOUNT`: `dbt-runner@forex-20260115.iam.gserviceaccount.com`
 
-## Run locally
-
-Create a dbt runner key if you plan to run dbt locally:
+## Running locally
 
 ```bash
+# Create a local key so you can execute as the dbt service account
 gcloud iam service-accounts keys create ./dbt-runner.json \
   --iam-account "dbt-runner@forex-20260115.iam.gserviceaccount.com"
 chmod 600 dbt-runner.json
-```
-
-Set credentials (use terraform-runner.json for Terraform, dbt-runner.json for dbt/downloader):
-
-```bash
 export GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/dbt-runner.json
 ```
 
