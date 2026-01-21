@@ -12,7 +12,7 @@ from google.api_core import exceptions as gcloud_exceptions
 BASE_ISO = "EUR"
 DEFAULT_START_DATE = dt.date(2026, 1, 2)
 FOREX_URL = "https://api.frankfurter.dev/v1"
-CUTOFF_TIME = dt.time(16, 0, 0) # Time before which we don't download today's x rates
+CUTOFF_TIME = dt.time(16, 0, 0)  # Time before which we don't download today's x rates
 
 
 def download_rates(
@@ -94,7 +94,6 @@ def rates_resource(
     end_date: dt.date,
     counter: dict[str, int],
 ) -> Iterator[dict[str, Any]]:
-
     for row in iter_rates(BASE_ISO, iso_codes, start_date, end_date):
         counter["rows"] += 1
         yield row
