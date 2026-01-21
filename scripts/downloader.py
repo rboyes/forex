@@ -39,37 +39,31 @@ def download_rates(
     return response.json()
 
 
-def build_rows(payload: dict[str, Any], timestamp: dt.datetime) -> list[dict[str, Any]]:
-    base_iso = payload["base"]
-    rows: dict[tuple[str, str, str], dict[str, Any]] = {}
-    date_value = dt.date.fromisoformat(payload["date"])
-    for to_iso, rate in payload["rates"].items():
-        key = (base_iso, to_iso, date_value.isoformat())
-        rows[key] = {
-            "base_iso": base_iso,
-            "to_iso": to_iso,
-            "date": date_value,
-            "rate": float(rate),
-            "created_at": timestamp,
-            "updated_at": timestamp,
-        }
-
-    return list(rows.values())
-
-
 def iter_rates(
     base_iso: str,
     iso_codes: str,
     start_date: dt.date,
     end_date: dt.date,
 ) -> Iterator[dict[str, Any]]:
+    rows: dict[tuple[str, str, str], dict[str, Any]] = {}
     current_date = start_date
     while current_date <= end_date:
         payload = download_rates(base_iso, iso_codes, current_date)
-        timestamp = dt.datetime.now(dt.timezone.utc)
-        for row in build_rows(payload, timestamp):
-            yield row
+        date_value = dt.date.fromisoformat(payload["date"])
+        for to_iso, rate in payload["rates"].items():
+            key = (payload["base"], to_iso, date_value.isoformat())
+            rows[key] = {
+                "base_iso": payload["base"],
+                "to_iso": to_iso,
+                "date": date_value,
+                "rate": float(rate),
+            }
         current_date += dt.timedelta(days=1)
+    timestamp = dt.datetime.now(dt.timezone.utc)
+    for row in rows.values():
+        row["created_at"] = timestamp
+        row["updated_at"] = timestamp
+        yield row
 
 
 def get_watermark(
