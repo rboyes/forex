@@ -5,7 +5,7 @@ Project: Forex rates downloader that stores historical data in BigQuery.
 ## Quick Start
 - Install deps: `uv sync`
 - Run downloader: `uv run python scripts/downloader.py`
-- Run dbt: `uv run dbt run`
+- Run dbt: `uv run dbt run --project-dir dbt --profiles-dir dbt`
 
 ## Configuration
 - Base currency is fixed to `EUR`.

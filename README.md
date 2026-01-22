@@ -88,15 +88,15 @@ Add GitHub repo secrets:
 
 ```bash
 # Create a local key so you can execute as the dbt service account
-gcloud iam service-accounts keys create ./dbt-runner.json \
+gcloud iam service-accounts keys create ./dbt/dbt-runner.json \
   --iam-account "dbt-runner@forex-20260115.iam.gserviceaccount.com"
-chmod 600 dbt-runner.json
-export GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/dbt-runner.json
+chmod 600 dbt/dbt-runner.json
+export GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/dbt/dbt-runner.json
 ```
 
 ```bash
 uv run python scripts/downloader.py
-uv run dbt run
+uv run dbt run --project-dir dbt --profiles-dir dbt
 ```
 
 ## Developer tooling - linting, formatting and type checking

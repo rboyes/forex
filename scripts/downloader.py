@@ -14,9 +14,9 @@ from google.api_core import exceptions as gcloud_exceptions
 BASE_ISO = "EUR"
 DEFAULT_START_DATE = dt.date(2026, 1, 2)
 FOREX_URL = "https://api.frankfurter.dev/v1"
-CUTOFF_TIME = dt.time(16, 0, 0)  # Time before which we don't download today's x rates
+DOWNLOAD_THRESHOLD = dt.time(16, 0, 0)  # Don't download before this time
 WEIGHTS_CSV = (
-    Path(__file__).resolve().parent / ".." / "seeds" / "seed_weights.csv"
+    Path(__file__).resolve().parent / ".." / "dbt" / "seeds" / "seed_weights.csv"
 ).resolve()
 PROJECT_ID = "forex-20260115"
 LOCATION = "europe-west2"
@@ -211,7 +211,7 @@ def main() -> None:
 
     # Only download today if after the cut off time
     now_utc = dt.datetime.now(dt.timezone.utc)
-    if now_utc.time() >= CUTOFF_TIME:
+    if now_utc.time() >= DOWNLOAD_THRESHOLD:
         end_date = now_utc.date()
     else:
         end_date = now_utc.date() - dt.timedelta(days=1)
