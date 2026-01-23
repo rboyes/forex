@@ -86,7 +86,7 @@ Add GitHub repo secrets:
 - `GCP_WIF_SERVICE_ACCOUNT`: `terraform-runner@forex-20260115.iam.gserviceaccount.com`
 - `GCP_DBT_WIF_SERVICE_ACCOUNT`: `dbt-runner@forex-20260115.iam.gserviceaccount.com`
 
-## Running locally
+## Running DBT locally
 
 ```bash
 # Create a local key so you can execute as the dbt service account
@@ -100,6 +100,26 @@ export GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/dbt/dbt-runner.json
 uv run python scripts/downloader.py
 uv run dbt run --project-dir dbt --profiles-dir dbt
 ```
+
+## API
+
+FastAPI service that serves TWI data from BigQuery.
+Defaults to dataset `presentation` and table `twi`, and uses `BQ_PROJECT_ID` if set.
+
+```bash
+uv sync
+gcloud auth application-default login
+uv run uvicorn api.src.main:app --reload --port 8000
+```
+
+Example requests:
+
+```bash
+curl "http://localhost:8000/twi/latest"
+curl "http://localhost:8000/twi?date=2024-01-01"
+curl "http://localhost:8000/twi?start=2024-01-01&end=2024-01-31"
+```
+
 
 ## Developer tooling - linting, formatting and type checking
 
