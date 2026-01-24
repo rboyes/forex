@@ -97,8 +97,10 @@ export GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/dbt/dbt-runner.json
 ```
 
 ```bash
+cd dbt
+uv sync
 uv run python scripts/downloader.py
-uv run dbt run --project-dir dbt --profiles-dir dbt
+uv run dbt run --project-dir . --profiles-dir .
 ```
 
 ## API
@@ -107,9 +109,10 @@ FastAPI service that serves TWI data from BigQuery.
 Defaults to dataset `presentation` and table `twi`, and uses `BQ_PROJECT_ID` if set.
 
 ```bash
+cd api
 uv sync
 gcloud auth application-default login
-uv run uvicorn api.src.main:app --reload --port 8000
+uv run uvicorn src.main:app --reload --port 8000
 ```
 
 Example requests:
@@ -124,6 +127,7 @@ curl "http://localhost:8000/twi?start=2024-01-01&end=2024-01-31"
 ## Developer tooling - linting, formatting and type checking
 
 ```bash
+cd api
 uv run ruff check .
 uv run ruff format .
 uv run ty check .

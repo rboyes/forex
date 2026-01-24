@@ -15,9 +15,7 @@ BASE_ISO = "EUR"
 DEFAULT_START_DATE = dt.date(2026, 1, 2)
 FOREX_URL = "https://api.frankfurter.dev/v1"
 DOWNLOAD_THRESHOLD = dt.time(16, 0, 0)  # Don't download before this time
-WEIGHTS_CSV = (
-    Path(__file__).resolve().parent / ".." / "dbt" / "seeds" / "seed_weights.csv"
-).resolve()
+WEIGHTS_CSV = (Path(__file__).resolve().parent / ".." / "seeds" / "seed_weights.csv").resolve()
 PROJECT_ID = "forex-20260115"
 LOCATION = "europe-west2"
 
