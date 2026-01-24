@@ -8,11 +8,11 @@ Runs via GitHub Actions and keeps incremental history by date.
 ```mermaid
 flowchart LR
   A[Frankfurter API] --> B[Downloader dlt]
-  B --> C[BigQuery staging_rates]
+  B --> C[BigQuery staging.rates]
   C --> D[dbt models]
   S[dbt twi seeds] --> D
-  D --> E[presentation_rates]
-  D --> F[presentation_twi]
+  D --> E[BigQuery presentation.rates]
+  D --> F[BigQuery presentation.twi]
 ```
 
 DBT documents are located at [dbt docs](https://rboyes.github.io/forex).
