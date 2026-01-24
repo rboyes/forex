@@ -10,6 +10,7 @@ flowchart LR
   A[Frankfurter API] --> B[Downloader dlt]
   B --> C[BigQuery staging_rates]
   C --> D[dbt models]
+  S[dbt twi seeds] --> D
   D --> E[presentation_rates]
   D --> F[presentation_twi]
 ```
