@@ -1,0 +1,20 @@
+# Local HTTP testing for the API (VS Code REST Client).
+# Start the API in another terminal:
+#   cd api
+#   uv sync
+#   gcloud auth application-default login
+#   uv run uvicorn src.main:app --reload --port 8000
+
+@base_url = http://localhost:8000
+
+### Health
+GET {{base_url}}/health
+
+### Latest TWI
+GET {{base_url}}/twi/latest
+
+### TWI on a date
+GET {{base_url}}/twi?date=2024-01-01
+
+### TWI range
+GET {{base_url}}/twi?start=2024-01-01&end=2024-01-31
