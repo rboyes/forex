@@ -37,13 +37,19 @@ jobs:
         uses: astral-sh/setup-uv@v3
 
       - name: Install dependencies
-        run: uv sync
+        run: |
+          cd dbt
+          uv sync
 
       - name: Install dbt packages
-        run: uv run dbt deps --project-dir dbt --profiles-dir dbt
+        run: |
+          cd dbt
+          uv run dbt deps --project-dir . --profiles-dir .
 
       - name: Generate dbt docs
-        run: uv run dbt docs generate --target ci --project-dir dbt --profiles-dir dbt
+        run: |
+          cd dbt
+          uv run dbt docs generate --target ci --project-dir . --profiles-dir .
 
       - name: Deploy to gh-pages
         if: github.event_name == 'push'
