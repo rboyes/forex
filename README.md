@@ -1,5 +1,5 @@
 # Foreign exchange DBT project in Google Cloud/BigQuery
-[![daily pipeline](https://img.shields.io/github/actions/workflow/status/rboyes/forex/daily-pipeline.yml?style=flat-square&logo=dbt)](https://github.com/rboyes/forex/actions/workflows/daily-pipeline.yml) [![dbt docs](https://img.shields.io/github/actions/workflow/status/rboyes/forex/dbt-docs.yml?style=flat-square&logo=dbt)](https://github.com/rboyes/forex/actions/workflows/dbt-docs.yml)
+[![daily pipeline](https://img.shields.io/github/actions/workflow/status/rboyes/forex/daily-pipeline.yml?style=flat-square&label=daily%20pipeline&logo=dbt&logoColor=FF694B)](https://github.com/rboyes/forex/actions/workflows/daily-pipeline.yml) [![dbt docs](https://img.shields.io/github/actions/workflow/status/rboyes/forex/dbt-docs.yml?style=flat-square&label=dbt%20docs&logo=dbt&logoColor=FF694B)](https://github.com/rboyes/forex/actions/workflows/dbt-docs.yml)
 
 Daily pipeline that pulls historical FX rates from Frankfurter, loads them into
 BigQuery staging, and builds presentation models (rates + TWI = trade weighted index) with dbt. 
