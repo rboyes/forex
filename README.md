@@ -13,6 +13,7 @@ flowchart LR
   S[dbt twi seeds] --> D
   D --> E[BigQuery presentation.rates]
   D --> F[BigQuery presentation.twi]
+  F --> G[Cloud Run API]
 ```
 
 DBT documents are located at [dbt docs](https://rboyes.github.io/forex).
