@@ -27,7 +27,7 @@ class _FakeClient:
 
 def _patch_client(monkeypatch, rows):
     client = _FakeClient(rows)
-    monkeypatch.setattr(main, "_client", lambda: client)
+    monkeypatch.setattr(main, "_bq_client", client)
     return client
 
 
