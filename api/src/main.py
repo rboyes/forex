@@ -1,5 +1,4 @@
 import datetime as dt
-import os
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Query
@@ -12,6 +11,7 @@ PROJECT_ID = "forex-20260115"
 TABLE = f"{PROJECT_ID}.presentation.twi"
 
 _bq_client = bigquery.Client(project=PROJECT_ID)
+
 
 def _serialize_value(value: Any) -> Any:
     if hasattr(value, "isoformat"):
@@ -56,7 +56,6 @@ def twi(
     end: dt.date | None = None,
     limit: int = Query(default=100, ge=1, le=1000),
 ) -> list[dict[str, Any]]:
-
     if date and (start or end):
         raise HTTPException(
             status_code=400, detail="date cannot be combined with start or end"
@@ -92,7 +91,7 @@ def twi(
         ]
     else:
         raise HTTPException(status_code=400, detail="invalid parameters")
-    
+
     job_config = bigquery.QueryJobConfig(query_parameters=params)
     rows = _bq_client.query(sql, job_config=job_config).result()
     return [_serialize_row(row) for row in rows]

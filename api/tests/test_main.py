@@ -81,9 +81,7 @@ def test_twi_date_query(monkeypatch):
     client = TestClient(main.app)
     response = client.get("/twi?date=2024-01-02")
     assert response.status_code == 200
-    assert response.json() == [
-        {"base_iso": "EUR", "date": "2024-01-02", "rate": 101.0}
-    ]
+    assert response.json() == [{"base_iso": "EUR", "date": "2024-01-02", "rate": 101.0}]
 
 
 def test_twi_requires_start_and_end(monkeypatch):
