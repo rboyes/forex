@@ -1,0 +1,58 @@
+name: Deploy API
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: api-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    env:
+      PROJECT_ID: forex-20260115
+      REGION: europe-west2
+      REPO: forex
+      SERVICE: forex-api
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_WIF_SERVICE_ACCOUNT }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker auth
+        run: gcloud auth configure-docker ${REGION}-docker.pkg.dev
+
+      - name: Build image
+        run: |
+          IMAGE=${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/${SERVICE}:latest
+          docker build -t ${IMAGE} -f api/Dockerfile .
+          echo "IMAGE=${IMAGE}" >> $GITHUB_ENV
+
+      - name: Push image
+        run: docker push ${IMAGE}
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy ${SERVICE} \
+            --image ${IMAGE} \
+            --region ${REGION} \
+            --project ${PROJECT_ID} \
+            --no-allow-unauthenticated

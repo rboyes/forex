@@ -51,3 +51,33 @@ variable "terraform_runner_service_account_email" {
   description = "Service account email used by the Terraform GitHub Actions workflow."
   default     = "terraform-runner@forex-20260115.iam.gserviceaccount.com"
 }
+
+variable "api_runner_service_account_id" {
+  type        = string
+  description = "Service account id for the Cloud Run API service."
+  default     = "api-runner"
+}
+
+variable "api_service_name" {
+  type        = string
+  description = "Cloud Run service name for the API."
+  default     = "forex-api"
+}
+
+variable "artifact_registry_repo_name" {
+  type        = string
+  description = "Artifact Registry repo for container images."
+  default     = "forex"
+}
+
+variable "api_container_image" {
+  type        = string
+  description = "Container image URI for the API (optional; defaults to the Artifact Registry repo)."
+  default     = "gcr.io/cloudrun/hello"
+}
+
+variable "api_invoker_service_account_email" {
+  type        = string
+  description = "Principal email allowed to invoke the private Cloud Run service (service account or user)."
+  default     = "rboyes@gmail.com"
+}
