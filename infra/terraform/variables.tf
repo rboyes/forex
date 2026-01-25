@@ -73,7 +73,7 @@ variable "artifact_registry_repo_name" {
 variable "api_container_image" {
   type        = string
   description = "Container image URI for the API (optional; defaults to the Artifact Registry repo)."
-  default     = "gcr.io/cloudrun/hello"
+  default     = ""
 }
 
 variable "api_invoker_service_account_id" {
