@@ -3,6 +3,9 @@ name: Publish dbt Docs
 on:
   push:
     branches: [main]
+    paths:
+      - "dbt/**"
+      - ".github/workflows/dbt-docs.yml"
 
 permissions:
   contents: write
