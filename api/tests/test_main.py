@@ -92,3 +92,11 @@ def test_twi_requires_start_and_end(monkeypatch):
     response = client.get("/twi?start=2024-01-01")
     assert response.status_code == 400
     assert response.json()["detail"] == "start and end must be provided together"
+
+
+def test_twi_rejects_date_with_range(monkeypatch):
+    _patch_client(monkeypatch, [])
+    client = TestClient(main.app)
+    response = client.get("/twi?date=2024-01-01&start=2024-01-01&end=2024-01-31")
+    assert response.status_code == 400
+    assert response.json()["detail"] == "date cannot be combined with start or end"

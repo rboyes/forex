@@ -8,25 +8,10 @@ from google.cloud.bigquery.table import Row
 
 app = FastAPI(title="Forex TWI API")
 
+PROJECT_ID = "forex-20260115"
+TABLE = f"{PROJECT_ID}.presentation.twi"
 
-def _project_id() -> str | None:
-    return os.getenv("BQ_PROJECT_ID") or os.getenv("GOOGLE_CLOUD_PROJECT") or os.getenv(
-        "GCP_PROJECT"
-    )
-
-
-def _table_ref() -> str:
-    dataset = os.getenv("BQ_DATASET", "presentation")
-    table = os.getenv("BQ_TWI_TABLE", "twi")
-    project = _project_id()
-    if project:
-        return f"{project}.{dataset}.{table}"
-    return f"{dataset}.{table}"
-
-
-def _client() -> bigquery.Client:
-    return bigquery.Client(project=_project_id())
-
+_bq_client = bigquery.Client(project=PROJECT_ID)
 
 def _serialize_value(value: Any) -> Any:
     if hasattr(value, "isoformat"):
@@ -45,10 +30,9 @@ def health() -> dict[str, str]:
 
 @app.get("/twi/latest")
 def twi_latest(base_iso: str = "EUR") -> dict[str, Any]:
-    table_ref = _table_ref()
     sql = f"""
         select base_iso, date, rate
-        from `{table_ref}`
+        from `{TABLE}`
         where base_iso = @base_iso
         order by date desc
         limit 1
@@ -58,7 +42,7 @@ def twi_latest(base_iso: str = "EUR") -> dict[str, Any]:
             bigquery.ScalarQueryParameter("base_iso", "STRING", base_iso),
         ]
     )
-    rows = list(_client().query(sql, job_config=job_config).result())
+    rows = list(_bq_client.query(sql, job_config=job_config).result())
     if not rows:
         raise HTTPException(status_code=404, detail="No data found")
     return _serialize_row(rows[0])
@@ -72,15 +56,33 @@ def twi(
     end: dt.date | None = None,
     limit: int = Query(default=100, ge=1, le=1000),
 ) -> list[dict[str, Any]]:
-    table_ref = _table_ref()
-    if date:
-        if start or end:
-            raise HTTPException(
-                status_code=400, detail="date cannot be combined with start or end"
-            )
+
+    if date and (start or end):
+        raise HTTPException(
+            status_code=400, detail="date cannot be combined with start or end"
+        )
+    if start and end:
         sql = f"""
             select base_iso, date, rate
-            from `{table_ref}`
+            from `{TABLE}`
+            where base_iso = @base_iso and date between @start and @end
+            order by date
+            limit @limit
+        """
+        params = [
+            bigquery.ScalarQueryParameter("base_iso", "STRING", base_iso),
+            bigquery.ScalarQueryParameter("start", "DATE", start),
+            bigquery.ScalarQueryParameter("end", "DATE", end),
+            bigquery.ScalarQueryParameter("limit", "INT64", limit),
+        ]
+    elif start or end:
+        raise HTTPException(
+            status_code=400, detail="start and end must be provided together"
+        )
+    elif date:
+        sql = f"""
+            select base_iso, date, rate
+            from `{TABLE}`
             where base_iso = @base_iso and date = @date
             limit 1
         """
@@ -89,37 +91,8 @@ def twi(
             bigquery.ScalarQueryParameter("date", "DATE", date),
         ]
     else:
-        if start and end:
-            sql = f"""
-                select base_iso, date, rate
-                from `{table_ref}`
-                where base_iso = @base_iso and date between @start and @end
-                order by date
-                limit @limit
-            """
-            params = [
-                bigquery.ScalarQueryParameter("base_iso", "STRING", base_iso),
-                bigquery.ScalarQueryParameter("start", "DATE", start),
-                bigquery.ScalarQueryParameter("end", "DATE", end),
-                bigquery.ScalarQueryParameter("limit", "INT64", limit),
-            ]
-        elif start or end:
-            raise HTTPException(
-                status_code=400, detail="start and end must be provided together"
-            )
-        else:
-            sql = f"""
-                select base_iso, date, rate
-                from `{table_ref}`
-                where base_iso = @base_iso
-                order by date desc
-                limit @limit
-            """
-            params = [
-                bigquery.ScalarQueryParameter("base_iso", "STRING", base_iso),
-                bigquery.ScalarQueryParameter("limit", "INT64", limit),
-            ]
-
+        raise HTTPException(status_code=400, detail="invalid parameters")
+    
     job_config = bigquery.QueryJobConfig(query_parameters=params)
-    rows = _client().query(sql, job_config=job_config).result()
+    rows = _bq_client.query(sql, job_config=job_config).result()
     return [_serialize_row(row) for row in rows]
