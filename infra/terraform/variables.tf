@@ -76,8 +76,8 @@ variable "api_container_image" {
   default     = "gcr.io/cloudrun/hello"
 }
 
-variable "api_invoker_service_account_email" {
+variable "api_invoker_service_account_id" {
   type        = string
-  description = "Principal email allowed to invoke the private Cloud Run service (service account or user)."
-  default     = "rboyes@gmail.com"
+  description = "Service account id allowed to invoke the private Cloud Run service."
+  default     = "api-invoker"
 }

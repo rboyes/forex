@@ -70,6 +70,14 @@ resource "google_service_account" "api_runner" {
   depends_on = [google_project_service.iam]
 }
 
+resource "google_service_account" "api_invoker" {
+  account_id   = var.api_invoker_service_account_id
+  display_name = "api invoker"
+  project      = var.project_id
+
+  depends_on = [google_project_service.iam]
+}
+
 resource "google_project_iam_member" "api_job_user" {
   project = var.project_id
   role    = "roles/bigquery.jobUser"
@@ -148,7 +156,6 @@ resource "google_artifact_registry_repository" "api" {
 
 locals {
   api_container_image = var.api_container_image != "" ? var.api_container_image : "${var.region}-docker.pkg.dev/${var.project_id}/${var.artifact_registry_repo_name}/${var.api_service_name}:latest"
-  api_invoker_principal = var.api_invoker_service_account_email != "" ? var.api_invoker_service_account_email : var.terraform_runner_service_account_email
 }
 
 resource "google_cloud_run_v2_service" "api" {
@@ -174,5 +181,5 @@ resource "google_cloud_run_v2_service_iam_member" "api_invoker" {
   location = var.region
   name     = google_cloud_run_v2_service.api.name
   role     = "roles/run.invoker"
-  member   = "user:${local.api_invoker_principal}"
+  member   = "serviceAccount:${google_service_account.api_invoker.email}"
 }
