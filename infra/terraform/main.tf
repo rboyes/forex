@@ -28,6 +28,16 @@ resource "google_project_service" "cloudasset" {
   service = "cloudasset.googleapis.com"
 }
 
+resource "google_project_service" "run" {
+  project = var.project_id
+  service = "run.googleapis.com"
+}
+
+resource "google_project_service" "artifactregistry" {
+  project = var.project_id
+  service = "artifactregistry.googleapis.com"
+}
+
 resource "google_service_account" "dbt_runner" {
   account_id   = "dbt-runner"
   display_name = "dbt runner"
@@ -50,6 +60,27 @@ resource "google_project_iam_member" "dbt_data_editor" {
   project = var.project_id
   role    = "roles/bigquery.dataEditor"
   member  = "serviceAccount:${google_service_account.dbt_runner.email}"
+}
+
+resource "google_service_account" "api_runner" {
+  account_id   = var.api_runner_service_account_id
+  display_name = "api runner"
+  project      = var.project_id
+
+  depends_on = [google_project_service.iam]
+}
+
+resource "google_project_iam_member" "api_job_user" {
+  project = var.project_id
+  role    = "roles/bigquery.jobUser"
+  member  = "serviceAccount:${google_service_account.api_runner.email}"
+}
+
+resource "google_bigquery_dataset_iam_member" "api_presentation_viewer" {
+  project    = var.project_id
+  dataset_id = google_bigquery_dataset.presentation.dataset_id
+  role       = "roles/bigquery.dataViewer"
+  member     = "serviceAccount:${google_service_account.api_runner.email}"
 }
 
 resource "google_service_account_iam_member" "dbt_runner_wif_user" {
@@ -104,4 +135,44 @@ resource "google_bigquery_dataset" "presentation" {
   location   = var.location
 
   depends_on = [google_project_service.bigquery]
+}
+
+resource "google_artifact_registry_repository" "api" {
+  location      = var.region
+  repository_id = var.artifact_registry_repo_name
+  format        = "DOCKER"
+  project       = var.project_id
+
+  depends_on = [google_project_service.artifactregistry]
+}
+
+locals {
+  api_container_image = var.api_container_image != "" ? var.api_container_image : "${var.region}-docker.pkg.dev/${var.project_id}/${var.artifact_registry_repo_name}/${var.api_service_name}:latest"
+  api_invoker_principal = var.api_invoker_service_account_email != "" ? var.api_invoker_service_account_email : var.terraform_runner_service_account_email
+}
+
+resource "google_cloud_run_v2_service" "api" {
+  name     = var.api_service_name
+  location = var.region
+  project  = var.project_id
+
+  ingress = "INGRESS_TRAFFIC_ALL"
+
+  template {
+    service_account = google_service_account.api_runner.email
+
+    containers {
+      image = local.api_container_image
+    }
+  }
+
+  depends_on = [google_project_service.run]
+}
+
+resource "google_cloud_run_v2_service_iam_member" "api_invoker" {
+  project  = var.project_id
+  location = var.region
+  name     = google_cloud_run_v2_service.api.name
+  role     = "roles/run.invoker"
+  member   = "user:${local.api_invoker_principal}"
 }
