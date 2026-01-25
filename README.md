@@ -120,8 +120,8 @@ Example requests:
 
 ```bash
 curl "http://localhost:8000/twi/latest"
-curl "http://localhost:8000/twi?date=2024-01-01"
-curl "http://localhost:8000/twi?start=2024-01-01&end=2024-01-31"
+curl "http://localhost:8000/twi?date=2026-01-20"
+curl "http://localhost:8000/twi?start=2026-01-18&end=2026-01-22"
 ```
 
 
