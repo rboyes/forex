@@ -8,6 +8,7 @@ on:
 permissions:
   contents: read
   id-token: write
+  checks: write
 
 concurrency:
   group: api-deploy
@@ -36,6 +37,23 @@ jobs:
 
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v2
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: Install API dependencies
+        run: uv --directory api sync --extra dev
+
+      - name: Run API tests
+        run: uv --directory api run pytest --junitxml=test-results.xml
+
+      - name: Publish API test report
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: api tests
+          path: api/test-results.xml
+          reporter: java-junit
 
       - name: Configure Docker auth
         run: gcloud auth configure-docker ${REGION}-docker.pkg.dev
