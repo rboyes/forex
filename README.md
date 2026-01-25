@@ -2,7 +2,8 @@
 [![daily pipeline](https://img.shields.io/github/actions/workflow/status/rboyes/forex/daily-pipeline.yml?style=flat-square&label=daily%20pipeline&logo=github)](https://github.com/rboyes/forex/actions/workflows/daily-pipeline.yml) [![dbt docs](https://img.shields.io/github/actions/workflow/status/rboyes/forex/dbt-docs.yml?style=flat-square&label=dbt%20docs&logo=github)](https://github.com/rboyes/forex/actions/workflows/dbt-docs.yml) [![api deploy](https://img.shields.io/github/actions/workflow/status/rboyes/forex/api-deploy.yml?style=flat-square&label=api%20deploy&logo=github)](https://github.com/rboyes/forex/actions/workflows/api-deploy.yml)
 
 Daily pipeline that pulls historical FX rates from Frankfurter, loads them into
-BigQuery staging, and builds presentation models (rates + TWI = trade weighted index) with dbt. 
+BigQuery staging, and builds presentation models (rates + TWI = trade weighted index) with dbt.
+The trade weighted index is then made available via a cloud run API. 
 Runs via GitHub Actions and keeps incremental history by date.
 
 ```mermaid
