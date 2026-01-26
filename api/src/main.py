@@ -13,15 +13,15 @@ TABLE = f"{PROJECT_ID}.presentation.twi"
 _bq_client = bigquery.Client(project=PROJECT_ID)
 
 
-def _serialize_value(value: Any) -> Any:
-    if hasattr(value, "isoformat"):
-        return value.isoformat()
-    return value
-
-
 def _serialize_row(row: Row) -> dict[str, Any]:
-    return {key: _serialize_value(value) for key, value in dict(row).items()}
-
+    
+    serialized_row = {}
+    for key, value in dict(row).items():
+        if hasattr(value, "isoformat") and callable(value.isoformat):
+            serialized_row[key] = value.isoformat()
+        else:
+            serialized_row[key] = value
+    return serialized_row
 
 @app.get("/health")
 def health() -> dict[str, str]:
