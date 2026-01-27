@@ -67,6 +67,14 @@ jobs:
       - name: Push image
         run: docker push ${IMAGE}
 
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy ${SERVICE} \
+            --image ${IMAGE} \
+            --region ${REGION} \
+            --project ${PROJECT_ID} \
+            --no-allow-unauthenticated
+
       - name: Cleanup old images
         run: |
           set -euo pipefail
@@ -75,13 +83,5 @@ jobs:
             --sort-by="~CREATE_TIME" \
             --format="value(DIGEST)" \
             --filter="NOT TAGS:latest" \
-            | tail -n +3 \
+            | tail -n +5 \
             | xargs -r -I {} gcloud artifacts docker images delete "${IMAGE_PATH}@{}" --quiet
-
-      - name: Deploy to Cloud Run
-        run: |
-          gcloud run deploy ${SERVICE} \
-            --image ${IMAGE} \
-            --region ${REGION} \
-            --project ${PROJECT_ID} \
-            --no-allow-unauthenticated
