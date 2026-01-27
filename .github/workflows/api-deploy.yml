@@ -73,8 +73,8 @@ jobs:
           IMAGE_PATH=${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO}/${SERVICE}
           gcloud artifacts docker images list "${IMAGE_PATH}" \
             --sort-by="~CREATE_TIME" \
-            --format="value(digest)" \
-            --filter="NOT tags:latest" \
+            --format="value(DIGEST)" \
+            --filter="NOT TAGS:latest" \
             | tail -n +3 \
             | xargs -r -I {} gcloud artifacts docker images delete "${IMAGE_PATH}@{}" --quiet
 
