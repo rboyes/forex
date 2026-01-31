@@ -110,9 +110,17 @@ Add GitHub repo secrets:
 
 ```bash
 # Authenticate locally using service account impersonation (safer than downloading keys)
-# Ensure your user has 'Service Account Token Creator' role on the service account
+# Grant your user the 'Service Account Token Creator' role on the service account
+gcloud services enable iamcredentials.googleapis.com --project=forex-20260115
+
+gcloud iam service-accounts add-iam-policy-binding dbt-runner@forex-20260115.iam.gserviceaccount.com \
+  --member="user:$(gcloud config get-value account)" \
+  --role="roles/iam.serviceAccountTokenCreator"
+
 gcloud auth application-default login \
   --impersonate-service-account="dbt-runner@forex-20260115.iam.gserviceaccount.com"
+
+curl -s "https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=$(gcloud auth application-default print-access-token --scopes=https://www.googleapis.com/auth/userinfo.email,https://www.googleapis.com/auth/cloud-platform)" | grep email
 ```
 
 ```bash
