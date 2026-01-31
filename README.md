@@ -33,10 +33,22 @@ DBT documents are located at [dbt docs](https://rboyes.github.io/forex).
     --project forex-20260115 \
     --display-name "Terraform runner"
 
-  # Grant full project permissions (broad)
-  gcloud projects add-iam-policy-binding forex-20260115 \
-    --member "serviceAccount:terraform-runner@forex-20260115.iam.gserviceaccount.com" \
-    --role "roles/owner"
+  # Grant granular permissions (Least Privilege)
+  for role in \
+    roles/serviceusage.serviceUsageAdmin \
+    roles/iam.serviceAccountAdmin \
+    roles/resourcemanager.projectIamAdmin \
+    roles/iam.workloadIdentityPoolAdmin \
+    roles/storage.admin \
+    roles/bigquery.admin \
+    roles/run.admin \
+    roles/artifactregistry.admin \
+    roles/iam.serviceAccountUser
+  do
+    gcloud projects add-iam-policy-binding forex-20260115 \
+      --member "serviceAccount:terraform-runner@forex-20260115.iam.gserviceaccount.com" \
+      --role "$role"
+  done
 
   # Storage bucket to maintain state
   gcloud storage buckets create gs://forex-20260115-tfstate \
@@ -47,15 +59,20 @@ DBT documents are located at [dbt docs](https://rboyes.github.io/forex).
   # Enable versioning on the bucket
   gcloud storage buckets update gs://forex-20260115-tfstate --versioning
 
+  ```
+- Deploy terraform locally using service account impersonation
+  ```
   # Enable the resource manager API
   gcloud services enable cloudresourcemanager.googleapis.com --project=forex-20260115
-  ```
-- Create a local key for the terraform storage account, if you want to deploy locally
-  ```
-  gcloud iam service-accounts keys create ./terraform-runner.json \
-    --iam-account "terraform-runner@forex-20260115.iam.gserviceaccount.com"
-  chmod 600 terraform-runner.json
-  export GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/terraform-runner.json
+
+  # Allow your user to impersonate the terraform-runner
+  gcloud iam service-accounts add-iam-policy-binding terraform-runner@forex-20260115.iam.gserviceaccount.com \
+  --member="user:$(gcloud config get-value account)" \
+  --role="roles/iam.serviceAccountTokenCreator"
+
+  gcloud auth application-default login \
+  --impersonate-service-account="terraform-runner@forex-20260115.iam.gserviceaccount.com"
+
   cd infra/terraform
   terraform init
   terraform apply
@@ -92,11 +109,10 @@ Add GitHub repo secrets:
 ## Running DBT locally
 
 ```bash
-# Create a local key so you can execute as the dbt service account
-gcloud iam service-accounts keys create ./dbt/dbt-runner.json \
-  --iam-account "dbt-runner@forex-20260115.iam.gserviceaccount.com"
-chmod 600 dbt/dbt-runner.json
-export GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/dbt/dbt-runner.json
+# Authenticate locally using service account impersonation (safer than downloading keys)
+# Ensure your user has 'Service Account Token Creator' role on the service account
+gcloud auth application-default login \
+  --impersonate-service-account="dbt-runner@forex-20260115.iam.gserviceaccount.com"
 ```
 
 ```bash
