@@ -75,14 +75,6 @@ resource "google_service_account" "api_runner" {
   depends_on = [google_project_service.iam]
 }
 
-resource "google_service_account" "api_invoker" {
-  account_id   = var.api_invoker_service_account_id
-  display_name = "api invoker"
-  project      = var.project_id
-
-  depends_on = [google_project_service.iam]
-}
-
 resource "google_project_iam_member" "api_job_user" {
   project = var.project_id
   role    = "roles/bigquery.jobUser"
@@ -179,14 +171,6 @@ resource "google_cloud_run_v2_service" "api" {
   }
 
   depends_on = [google_project_service.run]
-}
-
-resource "google_cloud_run_v2_service_iam_member" "api_invoker" {
-  project  = var.project_id
-  location = var.region
-  name     = google_cloud_run_v2_service.api.name
-  role     = "roles/run.invoker"
-  member   = "serviceAccount:${google_service_account.api_invoker.email}"
 }
 
 # API Gateway resources

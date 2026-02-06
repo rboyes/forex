@@ -75,9 +75,3 @@ variable "api_container_image" {
   description = "Container image URI for the API (optional; defaults to the Artifact Registry repo)."
   default     = ""
 }
-
-variable "api_invoker_service_account_id" {
-  type        = string
-  description = "Service account id allowed to invoke the private Cloud Run service."
-  default     = "api-invoker"
-}
