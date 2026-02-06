@@ -3,6 +3,11 @@ provider "google" {
   region  = var.region
 }
 
+provider "google-beta" {
+  project = var.project_id
+  region  = var.region
+}
+
 resource "google_project_service" "iam" {
   project = var.project_id
   service = "iam.googleapis.com"
@@ -201,7 +206,7 @@ resource "google_project_service" "servicecontrol" {
 }
 
 resource "google_api_gateway_api" "forex_api" {
-  provider     = google
+  provider     = google-beta
   project      = var.project_id
   api_id       = "forex-api"
   display_name = "Forex TWI API"
@@ -210,7 +215,7 @@ resource "google_api_gateway_api" "forex_api" {
 }
 
 resource "google_api_gateway_api_config" "forex_api_config" {
-  provider             = google
+  provider             = google-beta
   project              = var.project_id
   api                  = google_api_gateway_api.forex_api.api_id
   api_config_id_prefix = "forex-api-config-"
@@ -242,7 +247,7 @@ resource "google_api_gateway_api_config" "forex_api_config" {
 }
 
 resource "google_api_gateway_gateway" "forex_gateway" {
-  provider   = google
+  provider   = google-beta
   project    = var.project_id
   region     = var.region
   gateway_id = "forex-gateway"
