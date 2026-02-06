@@ -22,3 +22,13 @@ output "api_invoker_service_account_email" {
   description = "Email for the API invoker service account."
   value       = google_service_account.api_invoker.email
 }
+
+output "api_gateway_url" {
+  description = "Public URL for the API Gateway."
+  value       = google_api_gateway_gateway.forex_gateway.default_hostname
+}
+
+output "cloud_run_url" {
+  description = "Direct Cloud Run service URL."
+  value       = google_cloud_run_v2_service.api.uri
+}

@@ -132,8 +132,28 @@ uv run dbt run --project-dir . --profiles-dir .
 
 ## API
 
-FastAPI service that serves TWI data from BigQuery.
-Defaults to dataset `presentation` and table `twi`, and uses `BQ_PROJECT_ID` if set.
+FastAPI service that serves TWI data from BigQuery, exposed publicly via API Gateway.
+
+### Public Access
+
+The API is publicly accessible via API Gateway.
+
+Get the API Gateway URL after deployment:
+```bash
+cd infra/terraform
+API_URL="https://$(terraform output -raw api_gateway_url)"
+```
+
+Example requests:
+```bash
+curl "$API_URL/health"
+curl "$API_URL/twi/latest"
+curl "$API_URL/twi/latest?base_iso=USD"
+curl "$API_URL/twi?date=2026-01-20"
+curl "$API_URL/twi?start=2026-01-18&end=2026-01-22&base_iso=GBP"
+```
+
+### Local Development
 
 ```bash
 cd api
@@ -142,23 +162,12 @@ gcloud auth application-default login
 uv run uvicorn src.main:app --reload --port 8000
 ```
 
-Example requests:
-
+Local requests:
 ```bash
 curl "http://localhost:8000/twi/latest"
 curl "http://localhost:8000/twi?date=2026-01-20"
 curl "http://localhost:8000/twi?start=2026-01-18&end=2026-01-22"
 ```
-
-Production (Cloud Run, private):
-
-```bash
-URL=$(gcloud run services describe forex-api --region europe-west2 --format='value(status.url)')
-TOKEN=$(gcloud auth print-identity-token --audiences="$URL" \
-  --impersonate-service-account=api-invoker@forex-20260115.iam.gserviceaccount.com)
-curl -H "Authorization: Bearer $TOKEN" "$URL/twi/latest"
-```
-
 
 ## Developer tooling - linting, formatting and type checking
 
