@@ -1,4 +1,4 @@
-openapi: 3.0.3
+swagger: '2.0'
 info:
   title: Forex TWI API
   version: 1.0.0
@@ -7,163 +7,155 @@ info:
 paths:
   /health:
     get:
-      summary: Health
       operationId: health_health_get
+      summary: Health
+      description: ''
+      produces:
+      - application/json
       responses:
         '200':
           description: Successful Response
-          content:
-            application/json:
-              schema:
-                additionalProperties:
-                  type: string
-                type: object
-                title: Response Health Health Get
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+            title: Response Health Health Get
+      x-google-backend:
+        address: ${backend_url}
       x-google-quota:
         metricCosts:
           read-requests: 1
   /twi/latest:
     get:
-      summary: Twi Latest
       operationId: twi_latest_twi_latest_get
+      summary: Twi Latest
+      description: ''
+      produces:
+      - application/json
+      responses:
+        '200':
+          description: Successful Response
+          schema:
+            type: object
+            additionalProperties: true
+            title: Response Twi Latest Twi Latest Get
+        '422':
+          description: Validation Error
+          schema:
+            $ref: '#/definitions/HTTPValidationError'
       parameters:
       - name: base_iso
         in: query
         required: false
-        schema:
-          type: string
-          default: EUR
-          title: Base Iso
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                type: object
-                additionalProperties: true
-                title: Response Twi Latest Twi Latest Get
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
+        type: string
+        default: EUR
+      x-google-backend:
+        address: ${backend_url}
       x-google-quota:
         metricCosts:
           read-requests: 1
   /twi:
     get:
-      summary: Twi
       operationId: twi_twi_get
+      summary: Twi
+      description: ''
+      produces:
+      - application/json
+      responses:
+        '200':
+          description: Successful Response
+          schema:
+            type: array
+            items:
+              type: object
+              additionalProperties: true
+            title: Response Twi Twi Get
+        '422':
+          description: Validation Error
+          schema:
+            $ref: '#/definitions/HTTPValidationError'
       parameters:
       - name: base_iso
         in: query
         required: false
-        schema:
-          type: string
-          default: EUR
-          title: Base Iso
+        type: string
+        default: EUR
       - name: date
         in: query
         required: false
-        schema:
-          anyOf:
-          - type: string
-            format: date
-          - type: 'null'
-          title: Date
+        type: string
+        x-nullable: true
       - name: start
         in: query
         required: false
-        schema:
-          anyOf:
-          - type: string
-            format: date
-          - type: 'null'
-          title: Start
+        type: string
+        x-nullable: true
       - name: end
         in: query
         required: false
-        schema:
-          anyOf:
-          - type: string
-            format: date
-          - type: 'null'
-          title: End
+        type: string
+        x-nullable: true
       - name: limit
         in: query
         required: false
-        schema:
-          type: integer
-          maximum: 1000
-          minimum: 1
-          default: 100
-          title: Limit
-      responses:
-        '200':
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-                  additionalProperties: true
-                title: Response Twi Twi Get
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
+        type: integer
+        default: 100
+        minimum: 1
+        maximum: 1000
+      x-google-backend:
+        address: ${backend_url}
       x-google-quota:
         metricCosts:
           read-requests: 1
-components:
-  schemas:
-    HTTPValidationError:
-      properties:
-        detail:
-          items:
-            $ref: '#/components/schemas/ValidationError'
-          type: array
-          title: Detail
-      type: object
-      title: HTTPValidationError
-    ValidationError:
-      properties:
-        loc:
-          items:
-            anyOf:
-            - type: string
-            - type: integer
-          type: array
-          title: Location
-        msg:
+definitions:
+  HTTPValidationError:
+    properties:
+      detail:
+        items:
+          $ref: '#/definitions/ValidationError'
+        type: array
+        title: Detail
+    type: object
+    title: HTTPValidationError
+  ValidationError:
+    properties:
+      loc:
+        items:
           type: string
-          title: Message
-        type:
-          type: string
-          title: Error Type
-      type: object
-      required:
-      - loc
-      - msg
-      - type
-      title: ValidationError
-x-google-backend:
-  address: ${backend_url}
-  protocol: h2
+        type: array
+        title: Location
+      msg:
+        type: string
+        title: Message
+      type:
+        type: string
+        title: Error Type
+    type: object
+    required:
+    - loc
+    - msg
+    - type
+    title: ValidationError
+host: ${backend_host}
+schemes:
+- https
+securityDefinitions:
+  api_key:
+    type: apiKey
+    name: key
+    in: query
+security:
+- api_key: []
 x-google-management:
   metrics:
   - name: read-requests
+    displayName: Read Requests
     valueType: INT64
     metricKind: DELTA
   quota:
     limits:
     - name: read-limit
       metric: read-requests
-      unit: 1/h/{project}
+      unit: 1/min/{project}
       values:
-        STANDARD: 100
+        STANDARD: 10

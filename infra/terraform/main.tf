@@ -225,7 +225,8 @@ resource "google_api_gateway_api_config" "forex_api_config" {
     document {
       path = "openapi.yaml"
       contents = base64encode(templatefile("${path.module}/../../api/openapi.yaml", {
-        backend_url = google_cloud_run_v2_service.api.uri
+        backend_url  = google_cloud_run_v2_service.api.uri
+        backend_host = trimprefix(google_cloud_run_v2_service.api.uri, "https://")
       }))
     }
   }
