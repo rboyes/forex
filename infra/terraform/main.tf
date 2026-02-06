@@ -183,3 +183,81 @@ resource "google_cloud_run_v2_service_iam_member" "api_invoker" {
   role     = "roles/run.invoker"
   member   = "serviceAccount:${google_service_account.api_invoker.email}"
 }
+
+# API Gateway resources
+resource "google_project_service" "apigateway" {
+  project = var.project_id
+  service = "apigateway.googleapis.com"
+}
+
+resource "google_project_service" "servicemanagement" {
+  project = var.project_id
+  service = "servicemanagement.googleapis.com"
+}
+
+resource "google_project_service" "servicecontrol" {
+  project = var.project_id
+  service = "servicecontrol.googleapis.com"
+}
+
+resource "google_api_gateway_api" "forex_api" {
+  provider     = google
+  project      = var.project_id
+  api_id       = "forex-api"
+  display_name = "Forex TWI API"
+
+  depends_on = [google_project_service.apigateway]
+}
+
+resource "google_api_gateway_api_config" "forex_api_config" {
+  provider             = google
+  project              = var.project_id
+  api                  = google_api_gateway_api.forex_api.api_id
+  api_config_id_prefix = "forex-api-config-"
+  display_name         = "Forex API Config"
+
+  openapi_documents {
+    document {
+      path = "openapi.yaml"
+      contents = base64encode(templatefile("${path.module}/../../api/openapi.yaml", {
+        backend_url = google_cloud_run_v2_service.api.uri
+      }))
+    }
+  }
+
+  gateway_config {
+    backend_config {
+      google_service_account = google_service_account.api_runner.email
+    }
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  depends_on = [
+    google_project_service.servicemanagement,
+    google_project_service.servicecontrol
+  ]
+}
+
+resource "google_api_gateway_gateway" "forex_gateway" {
+  provider   = google
+  project    = var.project_id
+  region     = var.region
+  gateway_id = "forex-gateway"
+  api_config = google_api_gateway_api_config.forex_api_config.id
+
+  display_name = "Forex API Gateway"
+
+  depends_on = [google_api_gateway_api_config.forex_api_config]
+}
+
+# Allow API Gateway service account to invoke Cloud Run
+resource "google_cloud_run_v2_service_iam_member" "api_gateway_invoker" {
+  project  = var.project_id
+  location = var.region
+  name     = google_cloud_run_v2_service.api.name
+  role     = "roles/run.invoker"
+  member   = "serviceAccount:${google_service_account.api_runner.email}"
+}

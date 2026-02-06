@@ -1,0 +1,169 @@
+openapi: 3.0.3
+info:
+  title: Forex TWI API
+  version: 1.0.0
+  description: Public API for forex trade weighted index (TWI) data. Data sourced
+    from Frankfurter API and processed with dbt in BigQuery.
+paths:
+  /health:
+    get:
+      summary: Health
+      operationId: health_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties:
+                  type: string
+                type: object
+                title: Response Health Health Get
+      x-google-quota:
+        metricCosts:
+          read-requests: 1
+  /twi/latest:
+    get:
+      summary: Twi Latest
+      operationId: twi_latest_twi_latest_get
+      parameters:
+      - name: base_iso
+        in: query
+        required: false
+        schema:
+          type: string
+          default: EUR
+          title: Base Iso
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Twi Latest Twi Latest Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      x-google-quota:
+        metricCosts:
+          read-requests: 1
+  /twi:
+    get:
+      summary: Twi
+      operationId: twi_twi_get
+      parameters:
+      - name: base_iso
+        in: query
+        required: false
+        schema:
+          type: string
+          default: EUR
+          title: Base Iso
+      - name: date
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Date
+      - name: start
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Start
+      - name: end
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: End
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 1000
+          minimum: 1
+          default: 100
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  additionalProperties: true
+                title: Response Twi Twi Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      x-google-quota:
+        metricCosts:
+          read-requests: 1
+components:
+  schemas:
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+x-google-backend:
+  address: ${backend_url}
+  protocol: h2
+x-google-management:
+  metrics:
+  - name: read-requests
+    valueType: INT64
+    metricKind: DELTA
+  quota:
+    limits:
+    - name: read-limit
+      metric: read-requests
+      unit: 1/h/{project}
+      values:
+        STANDARD: 100
