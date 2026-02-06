@@ -137,7 +137,7 @@ FastAPI service that serves TWI data from BigQuery, exposed publicly via API Gat
 
 ### Public Access
 
-The API is publicly accessible via API Gateway.
+The API is publicly accessible via API Gateway with API key authentication and rate limiting (10 requests/minute per project).
 
 Get the API Gateway URL after deployment:
 ```bash
@@ -145,13 +145,27 @@ cd infra/terraform
 API_URL="https://$(terraform output -raw api_gateway_url)"
 ```
 
-Example requests:
+Create an API key:
 ```bash
-curl "$API_URL/health"
-curl "$API_URL/twi/latest"
-curl "$API_URL/twi/latest?base_iso=USD"
-curl "$API_URL/twi?date=2026-01-20"
-curl "$API_URL/twi?start=2026-01-18&end=2026-01-22&base_iso=GBP"
+# Create a new API key
+gcloud alpha services api-keys create forex-api-key \
+  --project=$(gcloud config get-value project) \
+  --display-name="Forex API Key"
+
+# List your API keys
+gcloud alpha services api-keys list --project=$(gcloud config get-value project)
+
+# Get the key string (replace KEY_ID with actual ID from list command)
+gcloud alpha services api-keys get-key-string KEY_ID --project=$(gcloud config get-value project)
+```
+
+Example requests (replace `YOUR_API_KEY` with your actual key):
+```bash
+curl "$API_URL/health?key=YOUR_API_KEY"
+curl "$API_URL/twi/latest?key=YOUR_API_KEY"
+curl "$API_URL/twi/latest?base_iso=USD&key=YOUR_API_KEY"
+curl "$API_URL/twi?date=2026-01-20&key=YOUR_API_KEY"
+curl "$API_URL/twi?start=2026-01-18&end=2026-01-22&base_iso=GBP&key=YOUR_API_KEY"
 ```
 
 ### Local Development
