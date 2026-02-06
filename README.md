@@ -43,6 +43,7 @@ DBT documents are located at [dbt docs](https://rboyes.github.io/forex).
     roles/bigquery.admin \
     roles/run.admin \
     roles/artifactregistry.admin \
+    roles/apigateway.admin \
     roles/iam.serviceAccountUser
   do
     gcloud projects add-iam-policy-binding forex-20260115 \
