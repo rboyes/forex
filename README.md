@@ -141,31 +141,28 @@ The API is publicly accessible via API Gateway with API key authentication and r
 
 Get the API Gateway URL after deployment:
 ```bash
-cd infra/terraform
-API_URL="https://$(terraform output -raw api_gateway_url)"
+API_URL="https://$(gcloud api-gateway gateways describe forex-gateway \
+  --location=europe-west2 \
+  --project=$(gcloud config get-value project) \
+  --format='value(defaultHostname)')"
 ```
 
 Create an API key:
 ```bash
 # Create a new API key
-gcloud alpha services api-keys create forex-api-key \
-  --project=$(gcloud config get-value project) \
-  --display-name="Forex API Key"
+gcloud alpha services api-keys create \
+  --display-name="forex-api-key" \
+  --project=$(gcloud config get-value project)
 
-# List your API keys
-gcloud alpha services api-keys list --project=$(gcloud config get-value project)
-
-# Get the key string (replace KEY_ID with actual ID from list command)
-gcloud alpha services api-keys get-key-string KEY_ID --project=$(gcloud config get-value project)
+KEY_NAME=$(gcloud alpha services api-keys list --project=$(gcloud config get-value project) --filter="displayName:forex-api-key" --format="value(name)")
+API_KEY=$(gcloud alpha services api-keys get-key-string $KEY_NAME --format="value(keyString)")
 ```
 
-Example requests (replace `YOUR_API_KEY` with your actual key):
+Example requests:
 ```bash
-curl "$API_URL/health?key=YOUR_API_KEY"
-curl "$API_URL/twi/latest?key=YOUR_API_KEY"
-curl "$API_URL/twi/latest?base_iso=USD&key=YOUR_API_KEY"
-curl "$API_URL/twi?date=2026-01-20&key=YOUR_API_KEY"
-curl "$API_URL/twi?start=2026-01-18&end=2026-01-22&base_iso=GBP&key=YOUR_API_KEY"
+curl "$API_URL/health?key=$API_KEY"
+curl "$API_URL/twi/latest?key=$API_KEY"
+curl "$API_URL/twi?date=2026-01-20&key=$API_KEY"
 ```
 
 ### Local Development

@@ -4,63 +4,82 @@ info:
   version: 1.0.0
   description: Public API for forex trade weighted index (TWI) data. Data sourced
     from Frankfurter API and processed with dbt in BigQuery.
+schemes:
+  - https
+basePath: /
+produces:
+  - application/json
 paths:
   /health:
     get:
       operationId: health_health_get
       summary: Health
       description: ''
-      produces:
-      - application/json
       responses:
         '200':
           description: Successful Response
           schema:
+            type: object
             additionalProperties:
               type: string
-            type: object
-            title: Response Health Health Get
       x-google-backend:
         address: ${backend_url}
-      x-google-quota:
-        metricCosts:
-          read-requests: 1
   /twi/latest:
     get:
       operationId: twi_latest_twi_latest_get
       summary: Twi Latest
       description: ''
-      produces:
-      - application/json
+      parameters:
+        - name: base_iso
+          in: query
+          required: false
+          type: string
+          default: EUR
       responses:
         '200':
           description: Successful Response
           schema:
             type: object
             additionalProperties: true
-            title: Response Twi Latest Twi Latest Get
         '422':
           description: Validation Error
           schema:
             $ref: '#/definitions/HTTPValidationError'
-      parameters:
-      - name: base_iso
-        in: query
-        required: false
-        type: string
-        default: EUR
       x-google-backend:
         address: ${backend_url}
-      x-google-quota:
-        metricCosts:
-          read-requests: 1
   /twi:
     get:
       operationId: twi_twi_get
       summary: Twi
       description: ''
-      produces:
-      - application/json
+      parameters:
+        - name: base_iso
+          in: query
+          required: false
+          type: string
+          default: EUR
+        - name: date
+          in: query
+          required: false
+          type: string
+          x-nullable: true
+        - name: start
+          in: query
+          required: false
+          type: string
+          x-nullable: true
+        - name: end
+          in: query
+          required: false
+          type: string
+          x-nullable: true
+        - name: limit
+          in: query
+          required: false
+          type: integer
+          default: 100
+          minimum: 1
+          maximum: 1000
       responses:
         '200':
           description: Successful Response
@@ -69,60 +88,32 @@ paths:
             items:
               type: object
               additionalProperties: true
-            title: Response Twi Twi Get
         '422':
           description: Validation Error
           schema:
             $ref: '#/definitions/HTTPValidationError'
-      parameters:
-      - name: base_iso
-        in: query
-        required: false
-        type: string
-        default: EUR
-      - name: date
-        in: query
-        required: false
-        type: string
-        x-nullable: true
-      - name: start
-        in: query
-        required: false
-        type: string
-        x-nullable: true
-      - name: end
-        in: query
-        required: false
-        type: string
-        x-nullable: true
-      - name: limit
-        in: query
-        required: false
-        type: integer
-        default: 100
-        minimum: 1
-        maximum: 1000
-      x-google-backend:
-        address: ${backend_url}
-      x-google-quota:
-        metricCosts:
-          read-requests: 1
 definitions:
   HTTPValidationError:
-    properties:
-      detail:
-        items:
-          $ref: '#/definitions/ValidationError'
-        type: array
-        title: Detail
     type: object
     title: HTTPValidationError
+    properties:
+      detail:
+        type: array
+        items:
+          $ref: '#/definitions/ValidationError'
+        title: Detail
   ValidationError:
+    type: object
+    title: ValidationError
+    required:
+      - loc
+      - msg
+      - type
     properties:
       loc:
+        type: array
         items:
           type: string
-        type: array
         title: Location
       msg:
         type: string
@@ -130,32 +121,10 @@ definitions:
       type:
         type: string
         title: Error Type
-    type: object
-    required:
-    - loc
-    - msg
-    - type
-    title: ValidationError
-host: ${backend_host}
-schemes:
-- https
 securityDefinitions:
   api_key:
     type: apiKey
     name: key
     in: query
 security:
-- api_key: []
-x-google-management:
-  metrics:
-  - name: read-requests
-    displayName: Read Requests
-    valueType: INT64
-    metricKind: DELTA
-  quota:
-    limits:
-    - name: read-limit
-      metric: read-requests
-      unit: 1/min/{project}
-      values:
-        STANDARD: 10
+  - api_key: []
