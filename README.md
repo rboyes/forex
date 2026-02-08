@@ -153,6 +153,12 @@ curl "http://localhost:8000/twi?start=2026-01-18&end=2026-01-22"
 Production (Cloud Run, private):
 
 ```bash
+# Grant your user permission to impersonate the api-invoker service account
+gcloud iam service-accounts add-iam-policy-binding api-invoker@forex-20260115.iam.gserviceaccount.com \
+  --member="user:$(gcloud config get-value account)" \
+  --role="roles/iam.serviceAccountTokenCreator"
+
+# Get the API URL and generate a token
 URL=$(gcloud run services describe forex-api --region europe-west2 --format='value(status.url)')
 TOKEN=$(gcloud auth print-identity-token --audiences="$URL" \
   --impersonate-service-account=api-invoker@forex-20260115.iam.gserviceaccount.com)
